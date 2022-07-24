@@ -1,31 +1,42 @@
-name: build & push docker image
+name: docker
 
 on:
   push:
-    branches: main
+    branches: ["main"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
+  build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
 
-      - name: Log into registry
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract docker metadata
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/rapla-to-ics
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: build and push
+      - name: Build and push Docker image
+        id: build-and-push
         uses: docker/build-push-action@v3
         with:
-          push: true
+          context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
