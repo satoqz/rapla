@@ -57,9 +57,7 @@ impl RaplaScraper {
         let doc = Html::parse_document(html.as_str());
         let mut events = Vec::new();
 
-        if doc.select(&self.selectors.calendar).next().is_none() {
-            return None;
-        }
+        doc.select(&self.selectors.calendar).next()?;
 
         for week_block in doc.select(&self.selectors.week_block) {
             let infotable = week_block.select(&self.selectors.infotable).next()?;
