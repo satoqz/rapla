@@ -40,8 +40,8 @@ pub async fn get_ics(key: &str) -> Option<String> {
     let ics = Arc::new(Mutex::new(ics));
 
     let now = Utc::now().date();
-    let start = now - Duration::weeks(25);
-    let end = now + Duration::weeks(25);
+    let start = now - Duration::weeks(15);
+    let end = now + Duration::weeks(15);
 
     if future::join_all(WeekRange::new(start, end).map(|week| process_week(&rapla, &ics, week)))
         .await
