@@ -51,35 +51,20 @@ impl RaplaScraper {
         format!("{}&day={}&month={}&year={}", self.url, day, month, year)
     }
 
-    pub async fn scrape_page(
-        &self,
-        year: i32,
-        month: u32,
-        day: u32,
-    ) -> Result<Vec<RaplaEvent>, String> {
+    pub async fn scrape_page(&self, year: i32, month: u32, day: u32) -> Option<Vec<RaplaEvent>> {
         let url = self.format_url(year, month, day);
-        let html = get(url)
-            .recv_string()
-            .await
-            .map_err(|err| err.to_string())?;
+        let html = get(url).recv_string().await.ok()?;
         let doc = Html::parse_document(html.as_str());
         let mut events = Vec::new();
 
         if doc.select(&self.selectors.calendar).next().is_none() {
-            return Err("No calendar page received".into());
+            return None;
         }
 
         for week_block in doc.select(&self.selectors.week_block) {
-            let infotable = week_block
-                .select(&self.selectors.infotable)
-                .next()
-                .ok_or("Unexpected HTML: information_table selector")?;
+            let infotable = week_block.select(&self.selectors.infotable).next()?;
 
-            let title = infotable
-                .select(&self.selectors.td)
-                .nth(1)
-                .ok_or("Unexpected HTML: event name td selector")?
-                .inner_html();
+            let title = infotable.select(&self.selectors.td).nth(1)?.inner_html();
 
             // exams are only given in form of an all-day event which is quite useless
             if title == "Klausur" {
@@ -92,26 +77,16 @@ impl RaplaScraper {
                 .collect::<Vec<String>>()
                 .join(" & ");
 
-            let time_info_string = week_block
-                .select(&self.selectors.div)
-                .nth(1)
-                .ok_or("Unexpected HTML: time_info div selector")?
-                .inner_html();
+            let time_info_string = week_block.select(&self.selectors.div).nth(1)?.inner_html();
 
             let time_info_vec = time_info_string.split(' ').collect::<Vec<&str>>();
 
-            let date = time_info_vec
-                .get(1)
-                .ok_or("Unexpected HTML: time_info")?
-                .to_string();
+            let date = time_info_vec.get(1)?.to_string();
 
-            let mut times = time_info_vec
-                .get(2)
-                .ok_or("Unexpected HTML: time info")?
-                .split('-');
+            let mut times = time_info_vec.get(2)?.split('-');
 
-            let start = times.next().ok_or("Unexpected HTML: time info")?.into();
-            let end = times.next().ok_or("Unexpected HTML: time info")?.into();
+            let start = times.next()?.into();
+            let end = times.next()?.into();
 
             let is_online = week_block.html().contains("background-color:#9999ff");
 
@@ -135,6 +110,6 @@ impl RaplaScraper {
             });
         }
 
-        Ok(events)
+        Some(events)
     }
 }

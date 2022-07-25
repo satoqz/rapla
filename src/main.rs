@@ -14,15 +14,11 @@ struct CacheItem {
     ics: String,
 }
 
-type Cache = Arc<Mutex<HashMap<String, CacheItem>>>;
-
-async fn handle_request(req: tide::Request<Cache>) -> tide::Result {
-    let key = req
-        .url()
-        .path()
-        .trim()
-        .trim_matches('/')
-        .trim_end_matches(".ics");
+async fn handle_request(
+    req: tide::Request<Arc<Mutex<HashMap<String, CacheItem>>>>,
+) -> tide::Result {
+    let url = req.url();
+    let key = url.path().trim().trim_matches('/').trim_end_matches(".ics");
 
     let mut cache = req.state().lock().await;
     let mut cache_hit = false;
@@ -33,26 +29,29 @@ async fn handle_request(req: tide::Request<Cache>) -> tide::Result {
             get_ics(key).await
         } else {
             cache_hit = true;
-            Ok(cached.ics.to_string())
+            Some(cached.ics.clone())
         }
     } else {
         get_ics(key).await
     };
 
-    if let Ok(ics) = ics {
+    if let Some(ics) = ics {
+        let response = Response::builder(200)
+            .content_type("text/calendar")
+            .body(ics.to_string())
+            .build();
+
         if !cache_hit {
             cache.insert(
                 key.into(),
                 CacheItem {
-                    ics: ics.clone(),
+                    ics,
                     ttl: now + Duration::hours(1),
                 },
             );
         }
-        Ok(Response::builder(200)
-            .content_type("text/calendar")
-            .body(ics)
-            .build())
+
+        Ok(response)
     } else {
         Ok(Response::builder(400)
             .body(format!("Error: Invalid Key ({key})\n"))

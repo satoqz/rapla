@@ -11,7 +11,7 @@ async fn process_week<'a>(
     rapla: &RaplaScraper,
     ics: &Arc<Mutex<ICalendar<'a>>>,
     week: Date<Utc>,
-) -> Result<(), String> {
+) -> Option<()> {
     let events = rapla
         .scrape_page(week.year(), week.month(), week.day())
         .await?
@@ -25,10 +25,10 @@ async fn process_week<'a>(
         l.add_event(event);
     }
 
-    Ok(())
+    Some(())
 }
 
-pub async fn get_ics(key: &str) -> Result<String, String> {
+pub async fn get_ics(key: &str) -> Option<String> {
     let rapla = RaplaScraper::new(format!("https://rapla.dhbw-stuttgart.de/rapla?key={key}"));
 
     let mut ics = ICalendar::new("2.0", key);
@@ -43,12 +43,14 @@ pub async fn get_ics(key: &str) -> Result<String, String> {
     let start = now - Duration::weeks(25);
     let end = now + Duration::weeks(25);
 
-    match future::join_all(WeekRange::new(start, end).map(|week| process_week(&rapla, &ics, week)))
+    if future::join_all(WeekRange::new(start, end).map(|week| process_week(&rapla, &ics, week)))
         .await
         .into_iter()
-        .collect::<Result<Vec<_>, _>>()
+        .collect::<Option<Vec<_>>>()
+        .is_some()
     {
-        Ok(_) => Ok(ics.lock().await.to_string()),
-        Err(err) => Err(err),
+        Some(ics.lock().await.to_string())
+    } else {
+        None
     }
 }
