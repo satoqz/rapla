@@ -9,6 +9,7 @@ struct Selectors {
     resource: Selector,
     div: Selector,
     td: Selector,
+    strong: Selector,
 }
 
 impl Selectors {
@@ -21,6 +22,7 @@ impl Selectors {
             resource: Selector::parse("span.resource").unwrap(),
             div: Selector::parse("div").unwrap(),
             td: Selector::parse("td").unwrap(),
+            strong: Selector::parse("strong").unwrap(),
         }
     }
 }
@@ -60,14 +62,17 @@ impl RaplaScraper {
         doc.select(&self.selectors.calendar).next()?;
 
         for week_block in doc.select(&self.selectors.week_block) {
-            let infotable = week_block.select(&self.selectors.infotable).next()?;
+            let tp = week_block
+                .select(&self.selectors.strong)
+                .next()?
+                .inner_html();
 
-            let title = infotable.select(&self.selectors.td).nth(1)?.inner_html();
-
-            // exams are only given in form of an all-day event which is quite useless
-            if title == "Klausur" {
+            if !tp.starts_with("Vorlesung") && !tp.starts_with("Online-Format") {
                 continue;
             }
+
+            let infotable = week_block.select(&self.selectors.infotable).next()?;
+            let title = infotable.select(&self.selectors.td).nth(1)?.inner_html();
 
             let lecturers = week_block
                 .select(&self.selectors.person)
@@ -76,9 +81,7 @@ impl RaplaScraper {
                 .join(" & ");
 
             let time_info_string = week_block.select(&self.selectors.div).nth(1)?.inner_html();
-
             let time_info_vec = time_info_string.split(' ').collect::<Vec<&str>>();
-
             let date = time_info_vec.get(1)?.to_string();
 
             let mut times = time_info_vec.get(2)?.split('-');
@@ -86,9 +89,7 @@ impl RaplaScraper {
             let start = times.next()?.into();
             let end = times.next()?.into();
 
-            let is_online = week_block.html().contains("background-color:#9999ff");
-
-            let location = if is_online {
+            let location = if tp.starts_with("Online-Format") {
                 "Online".into()
             } else {
                 week_block
