@@ -72,7 +72,11 @@ impl RaplaScraper {
             }
 
             let infotable = week_block.select(&self.selectors.infotable).next()?;
-            let title = infotable.select(&self.selectors.td).nth(1)?.inner_html();
+            let title = infotable
+                .select(&self.selectors.td)
+                .nth(1)?
+                .inner_html()
+                .replace("&amp;", "&");
 
             let lecturers = week_block
                 .select(&self.selectors.person)
