@@ -78,6 +78,10 @@ impl RaplaScraper {
                 .inner_html()
                 .replace("&amp;", "&");
 
+            if title.starts_with("Belegung") {
+                continue;
+            }
+
             let lecturers = week_block
                 .select(&self.selectors.person)
                 .map(|lecturer| lecturer.inner_html().trim_end_matches(',').into())

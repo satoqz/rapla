@@ -3,8 +3,11 @@ name = "rapla-to-ics"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+
 [dependencies]
 async-std = { version ="1.12.0", features = ["attributes"] }
+shuttle-service = { version = "0.5.0", features = ["web-tide"] }
 futures = "0.3.1"
 surf = "2.3.2"
 tide = "0.16.0"
