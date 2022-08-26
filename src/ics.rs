@@ -15,7 +15,7 @@ async fn process_week<'a>(
     let events = rapla
         .scrape_page(week.year(), week.month(), week.day())
         .await?
-        .iter()
+        .into_iter()
         .map(rapla_event_to_ics)
         .collect::<Vec<Event>>();
 

@@ -1,7 +1,6 @@
 use crate::scraper::RaplaEvent;
 use chrono::{Date, Duration, Utc};
 use ics::{
-    escape_text,
     properties::{DtEnd, DtStart, Location, Organizer, Summary},
     Event,
 };
@@ -27,7 +26,7 @@ impl Iterator for WeekRange {
     }
 }
 
-pub fn rapla_event_to_ics<'a>(event: &RaplaEvent) -> Event<'a> {
+pub fn rapla_event_to_ics<'a>(event: RaplaEvent) -> Event<'a> {
     let date = format!("20{}", {
         let mut date_vec = event.date.split('.').collect::<Vec<&str>>();
         date_vec.reverse();
@@ -40,11 +39,11 @@ pub fn rapla_event_to_ics<'a>(event: &RaplaEvent) -> Event<'a> {
     let id = format!("{}_{}", start, event.title.replace(' ', "-"));
 
     let mut ics_event = Event::new(id, start.clone());
-    ics_event.push(Summary::new(escape_text(event.title.clone())));
+    ics_event.push(Summary::new(event.title));
     ics_event.push(DtStart::new(start));
     ics_event.push(DtEnd::new(end));
-    ics_event.push(Organizer::new(escape_text(event.lecturers.clone())));
-    ics_event.push(Location::new(event.location.clone()));
+    ics_event.push(Organizer::new(event.lecturers));
+    ics_event.push(Location::new(event.location));
 
     ics_event
 }

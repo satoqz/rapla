@@ -3,7 +3,7 @@ use crate::ics::get_ics;
 use async_std::sync::Mutex;
 use chrono::{DateTime, Duration, Utc};
 use std::{collections::HashMap, sync::Arc};
-use tide::{log, Response};
+use tide::{log, Request, Response};
 
 pub struct CacheItem {
     ttl: DateTime<Utc>,
@@ -12,40 +12,39 @@ pub struct CacheItem {
 
 pub type State = Arc<Mutex<HashMap<String, CacheItem>>>;
 
-async fn handle_request(req: tide::Request<State>) -> tide::Result {
-    let url = req.url();
-    let key = url.path().trim().trim_matches('/').trim_end_matches(".ics");
+async fn handle_request(req: Request<State>) -> tide::Result {
+    let key = req
+        .url()
+        .path()
+        .trim()
+        .trim_matches('/')
+        .trim_end_matches(".ics");
 
     let mut cache = req.state().lock().await;
-    let mut cache_hit = false;
+
     let now = Utc::now();
 
-    let ics = if let Some(cached) = cache.get(key) {
-        if cached.ttl < now {
-            get_ics(key).await
-        } else {
-            cache_hit = true;
-            Some(cached.ics.clone())
+    if let Some(cache_hit) = cache.get(key) {
+        if cache_hit.ttl > now {
+            return Ok(Response::builder(200)
+                .content_type("text/calendar")
+                .body(cache_hit.ics.as_str())
+                .build());
         }
-    } else {
-        get_ics(key).await
-    };
+    }
 
-    if let Some(ics) = ics {
+    if let Some(ics) = get_ics(key).await {
+        let cache_item = CacheItem {
+            ttl: now + Duration::hours(1),
+            ics,
+        };
+
         let response = Response::builder(200)
             .content_type("text/calendar")
-            .body(ics.to_string())
+            .body(cache_item.ics.as_str())
             .build();
 
-        if !cache_hit {
-            cache.insert(
-                key.into(),
-                CacheItem {
-                    ics,
-                    ttl: now + Duration::hours(1),
-                },
-            );
-        }
+        cache.insert(key.into(), cache_item);
 
         Ok(response)
     } else {
