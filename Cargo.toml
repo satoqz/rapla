@@ -2,6 +2,9 @@
 name = "rapla-to-ics"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/satoqz/rapla-to-ics"
+license = "MIT"
+description = "Convert DHBW Rapla timetables to iCalendar, serverless"
 
 [lib]
 
