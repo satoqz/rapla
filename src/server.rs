@@ -59,6 +59,11 @@ pub fn server() -> tide::Server<State> {
 
     app.with(log::LogMiddleware::new());
     app.at("/:key").get(handle_request);
+    app.at("/").get(|_| async move {
+        Ok(Response::builder(301)
+            .header("Location", env!("CARGO_PKG_REPOSITORY"))
+            .build())
+    });
 
     app
 }
