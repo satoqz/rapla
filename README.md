@@ -18,13 +18,13 @@ Optionally, you can append the `.ics` file extension after the key.
 
 ## Official instance
 
-The official instance is available at https://rapla-to-ics.shuttleapp.rs.
+The official instance is available at https://blade.trench.world.
 This is the easiest way to use the project.
 
 Simply use
 
 ```
-https://rapla-to-ics.shuttleapp.rs/{your_rapla_key}
+https://blade.trench.world/{your_rapla_key}
 ```
 
 to your calendar provider
