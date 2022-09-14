@@ -32,10 +32,9 @@ pub async fn get_ics(key: &str) -> Option<String> {
     let rapla = RaplaScraper::new(format!("https://rapla.dhbw-stuttgart.de/rapla?key={key}"));
 
     let mut ics = ICalendar::new("2.0", key);
-
     ics.add_timezone(ics::TimeZone::standard(
         "Europe/Berlin",
-        ics::Standard::new("19700329T020000", "+0000", "+0000"),
+        ics::Standard::new("18930401T000632", "+0053", "+0100"),
     ));
 
     let ics = Arc::new(Mutex::new(ics));
