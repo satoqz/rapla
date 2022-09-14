@@ -34,7 +34,11 @@ pub async fn get_ics(key: &str) -> Option<String> {
     let mut ics = ICalendar::new("2.0", key);
     ics.add_timezone(ics::TimeZone::standard(
         "Europe/Berlin",
-        ics::Standard::new("18930401T000632", "+0053", "+0100"),
+        ics::Standard::new("19700101T000000", "+0053", "+0100"),
+    ));
+    ics.add_timezone(ics::TimeZone::daylight(
+        "Europe/Berlin",
+        ics::Daylight::new("19700101T000000", "+0053", "+0200"),
     ));
 
     let ics = Arc::new(Mutex::new(ics));
