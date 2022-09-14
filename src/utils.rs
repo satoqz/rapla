@@ -1,7 +1,7 @@
 use crate::scraper::RaplaEvent;
 use chrono::{Date, Duration, Utc};
 use ics::{
-    properties::{DtEnd, DtStart, Location, Organizer, Summary},
+    properties::{DtEnd, DtStart, Location, Organizer, Summary, TzID},
     Event,
 };
 use std::mem;
@@ -44,6 +44,7 @@ pub fn rapla_event_to_ics<'a>(event: RaplaEvent) -> Event<'a> {
     ics_event.push(DtEnd::new(end));
     ics_event.push(Organizer::new(event.lecturers));
     ics_event.push(Location::new(event.location));
+    ics_event.push(TzID::new("Europe/Berlin"));
 
     ics_event
 }
