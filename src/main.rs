@@ -60,7 +60,7 @@ async fn handle_request(req: Request<State>) -> tide::Result {
 
 #[async_std::main]
 async fn main() -> Result<(), std::io::Error> {
-    let port = env::var("PORT").unwrap_or_else(|_| "8000".into());
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
     let mut app: Server<State> = tide::with_state(Arc::new(Mutex::new(HashMap::new())));
 
     app.with(log::LogMiddleware::new());
