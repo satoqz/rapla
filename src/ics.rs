@@ -4,7 +4,10 @@ use crate::utils::{rapla_event_to_ics, WeekRange};
 use async_std::sync::Mutex;
 use chrono::{Date, Datelike, Duration, Utc};
 use futures::future;
-use ics::{Event, ICalendar};
+use ics::{
+    properties::{RRule, TzName},
+    Event, ICalendar,
+};
 use std::sync::Arc;
 
 async fn process_week<'a>(
@@ -31,15 +34,18 @@ async fn process_week<'a>(
 pub async fn get_ics(key: &str) -> Option<String> {
     let rapla = RaplaScraper::new(format!("https://rapla.dhbw-stuttgart.de/rapla?key={key}"));
 
+    let mut cest = ics::Daylight::new("19700329T020000", "+0100", "+0200");
+    cest.push(TzName::new("CEST"));
+    cest.push(RRule::new("FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"));
+    let mut cet = ics::Standard::new("19701025T030000", "+0200", "+0100");
+    cet.push(TzName::new("CET"));
+    cet.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
+
+    let mut timezone = ics::TimeZone::daylight("Europe/Berlin", cest);
+    timezone.add_standard(cet);
+
     let mut ics = ICalendar::new("2.0", key);
-    ics.add_timezone(ics::TimeZone::standard(
-        "Europe/Berlin",
-        ics::Standard::new("19700101T000000", "+0053", "+0100"),
-    ));
-    ics.add_timezone(ics::TimeZone::daylight(
-        "Europe/Berlin",
-        ics::Daylight::new("19700101T000000", "+0053", "+0200"),
-    ));
+    ics.add_timezone(timezone);
 
     let ics = Arc::new(Mutex::new(ics));
 
