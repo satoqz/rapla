@@ -35,7 +35,7 @@ pub async fn get_ics(key: &str) -> Option<String> {
 
     ics.add_timezone(ics::TimeZone::standard(
         "Europe/Berlin",
-        ics::Standard::new("19700329T000000", "+0000", "+0000"),
+        ics::Standard::new("19700329T020000", "+0000", "+0000"),
     ));
 
     let ics = Arc::new(Mutex::new(ics));
