@@ -1,7 +1,7 @@
 # `rapla-to-ics`
 
 Server to transform DHBW Rapla Timetable links into the iCalendar format.
-Import any Rapla timetable into your calendar provider of choice (Outlook, Google, Proton...).
+Import any Rapla timetable into your calendar provider of choice (Outlook, Google, Proton, Apple...).
 
 ## Usage
 
@@ -21,13 +21,13 @@ Optionally, you can append the `.ics` file extension after the key.
 The official instance is available at https://blade.trench.world.
 This is the easiest way to use the project.
 
-Simply use
+Simply add
 
 ```
 https://blade.trench.world/{your_rapla_key}
 ```
 
-to your calendar provider
+using the "import url" or "subscribe" functionality depending on your calendar provider.
 
 ## Docker image
 
