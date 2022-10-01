@@ -31,7 +31,7 @@ async fn process_week<'a>(
     Some(())
 }
 
-pub async fn get_ics(key: &str) -> Option<String> {
+pub async fn scrape_ics(key: &str) -> Option<String> {
     let rapla = RaplaScraper::new(format!("https://rapla.dhbw-stuttgart.de/rapla?key={key}"));
 
     let mut cest = ics::Daylight::new("19700329T020000", "+0100", "+0200");

@@ -1,6 +1,6 @@
-use crate::ics::get_ics;
+use crate::ics::scrape_ics;
 
-use async_std::sync::Mutex;
+use async_std::{sync::Mutex, task};
 use chrono::{DateTime, Duration, Utc};
 use std::{collections::HashMap, env, sync::Arc};
 use tide::{log, Request, Response, Server};
@@ -9,12 +9,12 @@ mod ics;
 mod scraper;
 mod utils;
 
-pub struct CacheItem {
+struct CacheItem {
     ttl: DateTime<Utc>,
     ics: String,
 }
 
-pub type State = Arc<Mutex<HashMap<String, CacheItem>>>;
+type State = Arc<Mutex<HashMap<String, CacheItem>>>;
 
 async fn handle_request(req: Request<State>) -> tide::Result {
     let key = req
@@ -37,7 +37,7 @@ async fn handle_request(req: Request<State>) -> tide::Result {
         }
     }
 
-    if let Some(ics) = get_ics(key).await {
+    if let Some(ics) = scrape_ics(key).await {
         let cache_item = CacheItem {
             ttl: now + Duration::hours(1),
             ics,
@@ -61,7 +61,8 @@ async fn handle_request(req: Request<State>) -> tide::Result {
 #[async_std::main]
 async fn main() -> Result<(), std::io::Error> {
     let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
-    let mut app: Server<State> = tide::with_state(Arc::new(Mutex::new(HashMap::new())));
+    let cache = Arc::new(Mutex::new(HashMap::new()));
+    let mut app: Server<State> = tide::with_state(cache.clone());
 
     app.with(log::LogMiddleware::new());
     app.at("/:key").get(handle_request);
@@ -71,5 +72,15 @@ async fn main() -> Result<(), std::io::Error> {
             .build())
     });
 
-    app.listen(format!("0.0.0.0:{port}")).await
+    let app_handle = app.listen(format!("0.0.0.0:{port}"));
+    let sweeper_handle = task::spawn(async move {
+        let hour = Duration::hours(1).to_std().unwrap();
+        loop {
+            task::sleep(hour).await;
+            let now = Utc::now();
+            cache.lock().await.retain(|_, value| value.ttl > now);
+        }
+    });
+
+    futures::join!(app_handle, sweeper_handle).0
 }
