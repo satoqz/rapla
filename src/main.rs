@@ -60,6 +60,8 @@ async fn handle_request(req: Request<State>) -> tide::Result {
 
 #[async_std::main]
 async fn main() -> Result<(), std::io::Error> {
+    json_env_logger::init();
+
     let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
     let cache = Arc::new(Mutex::new(HashMap::new()));
     let mut app: Server<State> = tide::with_state(cache.clone());
