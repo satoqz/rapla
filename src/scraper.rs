@@ -67,7 +67,10 @@ impl RaplaScraper {
                 .next()?
                 .inner_html();
 
-            if !tp.starts_with("Vorlesung") && !tp.starts_with("Online-Format") {
+            if !["Vorlesung", "Online-Format", "Klausur"]
+                .map(|val| tp.starts_with(val))
+                .contains(&true)
+            {
                 continue;
             }
 
@@ -78,7 +81,14 @@ impl RaplaScraper {
                 .inner_html()
                 .replace("&amp;", "&");
 
-            if title.starts_with("Belegung") {
+            /* a title starting with "Belegung" or "Raum belegt" indicates an event irrelevant to the course
+            a title that is only "Klausur" instead of e.g. "Klausur Mathematik" indicates that
+            the event is only a blocker but does not contain specific times and names */
+            if ["Belegung", "Raum belegt"]
+                .map(|val| title.starts_with(val))
+                .contains(&true)
+                || title == "Klausur"
+            {
                 continue;
             }
 
