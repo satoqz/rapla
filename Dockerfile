@@ -8,8 +8,6 @@ RUN cargo build --release
 
 FROM alpine AS runner
 
-RUN apk --no-cache add openssl
-
 COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/rapla-to-ics /usr/local/bin
 
 EXPOSE 8080
