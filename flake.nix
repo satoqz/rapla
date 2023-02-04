@@ -1,55 +1,80 @@
 {
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nci = {
+      url = "github:yusdacra/nix-cargo-integration";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+    };
   };
 
   outputs = {
     nixpkgs,
-    flake-utils,
+    nci,
     ...
-  }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+  }: let
+    inherit (nixpkgs) lib;
 
-      buildInputs =
-        [pkgs.openssl]
-        ++ nixpkgs.lib.optional pkgs.stdenv.isDarwin
-        pkgs.darwin.apple_sdk.frameworks.SystemConfiguration;
+    name = "rapla-to-ics";
 
-      nativeBuildInputs = [
-        pkgs.cargo
-        pkgs.rustc
-        pkgs.pkg-config
-      ];
-    in rec {
-      packages.default = pkgs.rustPlatform.buildRustPackage {
-        name = "rapla-to-ics";
-        version = "main";
+    outputs = nci.lib.makeOutputs {
+      root = ./.;
 
-        src = ./.;
-        cargoLock.lockFile = ./Cargo.lock;
+      config = common: {
+        outputs.defaults = {
+          package = name;
+          app = name;
+        };
 
-        inherit buildInputs nativeBuildInputs;
-      };
-
-      apps.default = flake-utils.lib.mkApp {
-        drv = packages.default;
-      };
-
-      devShells.default = pkgs.mkShell {
-        packages = with pkgs; [
-          cargo-watch
+        shell.packages = with common.pkgs; [
+          treefmt
           rust-analyzer
-          rustfmt
-          clippy
-          alejandra
+          nil
         ];
 
-        inherit buildInputs nativeBuildInputs;
+        cCompiler.package = common.pkgs.clang;
       };
 
-      formatter = pkgs.alejandra;
-    });
+      pkgConfig = common: {
+        ${name} = {
+          build = true;
+          app = true;
+
+          overrides.libraries.nativeBuildInputs = with common.pkgs;
+            [libiconv]
+            ++ lib.optionals stdenv.isDarwin [
+              darwin.apple_sdk.frameworks.Security
+            ];
+        };
+      };
+    };
+  in
+    outputs
+    // {
+      packages = lib.mapAttrs (system: packages: let
+        pkgs = import nixpkgs {inherit system;};
+      in
+        packages
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          "${name}-docker" = pkgs.dockerTools.buildLayeredImage {
+            inherit name;
+            tag = "latest";
+
+            contents = [
+              packages.default
+              pkgs.cacert
+            ];
+
+            config = {
+              Cmd = [name];
+              ExposedPorts."8080/tcp" = {};
+            };
+          };
+        })
+      outputs.packages;
+    };
 }
