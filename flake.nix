@@ -46,9 +46,11 @@
 
           overrides.libraries.nativeBuildInputs = with common.pkgs;
             [libiconv]
-            ++ lib.optionals stdenv.isDarwin [
-              darwin.apple_sdk.frameworks.Security
-            ];
+            ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
+              CoreFoundation
+              Security
+              SystemConfiguration
+            ]);
         };
       };
     };
