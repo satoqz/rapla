@@ -36,8 +36,6 @@
           nil
         ];
 
-        runtimeLibs = [];
-
         cCompiler.package = common.pkgs.clang;
       };
 
@@ -45,6 +43,12 @@
         ${name} = {
           build = true;
           app = true;
+
+          overrides.libraries.nativeBuildInputs = with common.pkgs;
+            [libiconv]
+            ++ lib.optionals stdenv.isDarwin [
+              darwin.apple_sdk.frameworks.Security
+            ];
         };
       };
     };
