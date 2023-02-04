@@ -32,6 +32,7 @@
 
         shell.packages = with common.pkgs; [
           treefmt
+          rust-analyzer
           nil
         ];
 
