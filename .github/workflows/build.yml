@@ -27,10 +27,10 @@ jobs:
         authToken: ${{ secrets.CACHIX_TOKEN }}
 
     - name: Check flake
-      run: nix flake check
+      run: nix flake check -L
 
     - name: Build docker image
-      run: nix build .#rapla-to-ics-docker
+      run: nix build -L .#rapla-to-ics-docker
 
     - name: Load docker image
       run: docker load <result
