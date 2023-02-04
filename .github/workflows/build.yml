@@ -2,17 +2,12 @@ name: Build and push docker image
 
 on:
   push:
-    # TODO: remove rewrite before merge
-    branches: [main, rewrite]
-
-  pull_request:
     branches: [main]
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # TODO: change to 'latest' before merge
-  TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rewrite
+  TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
 jobs:
   build:
