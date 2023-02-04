@@ -32,7 +32,6 @@
 
         shell.packages = with common.pkgs; [
           treefmt
-          alejandra
           nil
         ];
 
