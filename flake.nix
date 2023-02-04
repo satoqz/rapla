@@ -83,7 +83,7 @@
     };
 
   nixConfig = {
-    extra-substitutors = [
+    extra-substituters = [
       "https://systems.cachix.org"
     ];
     extra-trusted-public-keys = [
