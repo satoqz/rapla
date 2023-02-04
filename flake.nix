@@ -58,7 +58,9 @@
     outputs
     // {
       packages = lib.mapAttrs (system: packages: let
-        pkgs = import nixpkgs {inherit system;};
+        pkgs = import nixpkgs {
+          inherit system;
+        };
       in
         packages
         // lib.optionalAttrs pkgs.stdenv.isLinux {
@@ -79,4 +81,13 @@
         })
       outputs.packages;
     };
+
+  nixConfig = {
+    extra-substitutors = [
+      "https://systems.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "systems.cachix.org-1:w+BPDlm25/PkSE0uN9uV6u12PNmSsBuR/HW6R/djZIc="
+    ];
+  };
 }
