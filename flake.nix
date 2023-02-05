@@ -48,7 +48,7 @@
           app = true;
 
           overrides.libraries.nativeBuildInputs = with common.pkgs;
-            [libiconv]
+            [openssl libiconv]
             ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
               CoreFoundation
               Security
