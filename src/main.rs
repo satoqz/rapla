@@ -15,7 +15,7 @@ use url::Url;
 
 macro_rules! selector {
     ($name:ident, $query:expr) => {
-        const $name: Lazy<Selector> = Lazy::new(|| Selector::parse($query).unwrap());
+        static $name: Lazy<Selector> = Lazy::new(|| Selector::parse($query).unwrap());
     };
 }
 
@@ -39,7 +39,7 @@ struct Event {
 struct Page(Html);
 
 impl Event {
-    pub fn to_ics_event<'a>(self) -> ics::Event<'a> {
+    pub fn to_ics_event<'a>(&self) -> ics::Event<'a> {
         let ics_event = ics::Event::new("", "");
 
         ics_event
@@ -48,7 +48,7 @@ impl Event {
 
 impl Page {
     pub async fn fetch(url: &String) -> Result<Page> {
-        Url::parse(&url)?;
+        Url::parse(url)?;
 
         debug!("Sending HTTP request");
         let mut resp = surf::get(url).await.map_err(|err| anyhow!(err))?;
@@ -78,7 +78,7 @@ impl Page {
     }
 }
 
-fn build_ics<'a>(events: Vec<Event>, key: &'a str) -> ICalendar<'a> {
+fn build_ics(events: Vec<Event>, key: &'_ str) -> ICalendar<'_> {
     let mut cest = Daylight::new("19700329T020000", "+0100", "+0200");
     cest.push(TzName::new("CEST"));
     cest.push(RRule::new("FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"));
