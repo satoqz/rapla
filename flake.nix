@@ -22,7 +22,10 @@
     name = "rapla-to-ics";
 
     outputs = nci.lib.makeOutputs {
-      root = ./.;
+      root = builtins.path {
+        inherit name;
+        path = ./.;
+      };
 
       config = common: {
         outputs.defaults = {

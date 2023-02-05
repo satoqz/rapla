@@ -1,88 +1,140 @@
-use crate::ics::scrape_ics;
+#![allow(unused)]
 
-use async_std::{sync::Mutex, task};
-use chrono::{DateTime, Duration, Utc};
-use std::{collections::HashMap, env, sync::Arc};
-use tide::{log, Request, Response, Server};
+use anyhow::{anyhow, Result};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
+use clap::{crate_name, Arg, Command};
+use ics::{
+    properties::{RRule, TzName},
+    Daylight, ICalendar, TimeZone,
+};
+use log::{debug, error, info};
+use once_cell::sync::Lazy;
+use scraper::{Html, Selector};
+use std::env;
+use url::Url;
 
-mod ics;
-mod scraper;
-mod utils;
-
-struct CacheItem {
-    ttl: DateTime<Utc>,
-    ics: String,
+macro_rules! selector {
+    ($name:ident, $query:expr) => {
+        const $name: Lazy<Selector> = Lazy::new(|| Selector::parse($query).unwrap());
+    };
 }
 
-type State = Arc<Mutex<HashMap<String, CacheItem>>>;
+selector!(DIV_SELECTOR, "div");
+selector!(TD_SELECTOR, "td");
+selector!(STRONG_SELECTOR, "strong");
+selector!(CALENDAR_SELECTOR, "#calendar");
+selector!(BLOCK_SELECTOR, "td.week_block");
+selector!(INFO_TABLE_SELECTOR, "table.infotable");
+selector!(RESOURCE_SELECTOR, "span.resource");
 
-async fn handle_request(req: Request<State>) -> tide::Result {
-    let key = req
-        .url()
-        .path()
-        .trim()
-        .trim_matches('/')
-        .trim_end_matches(".ics");
+struct Event {
+    title: String,
+    date: NaiveDate,
+    start: NaiveTime,
+    end: NaiveTime,
+    location: String,
+    lecturer: String,
+}
 
-    let mut cache = req.state().lock().await;
+struct Page(Html);
 
-    let now = Utc::now();
+impl Event {
+    pub fn to_ics_event<'a>(self) -> ics::Event<'a> {
+        let ics_event = ics::Event::new("", "");
 
-    if let Some(cache_hit) = cache.get(key) {
-        if cache_hit.ttl > now {
-            return Ok(Response::builder(200)
-                .content_type("text/calendar")
-                .body(cache_hit.ics.as_str())
-                .build());
+        ics_event
+    }
+}
+
+impl Page {
+    pub async fn fetch(url: &String) -> Result<Page> {
+        Url::parse(&url)?;
+
+        debug!("Sending HTTP request");
+        let mut resp = surf::get(url).await.map_err(|err| anyhow!(err))?;
+
+        let status = resp.status();
+        if status != 200 {
+            return Err(anyhow!("Got response status {status}"));
         }
+
+        debug!("Reading response body");
+        let body = resp
+            .take_body()
+            .into_string()
+            .await
+            .map_err(|err| anyhow!(err))?;
+
+        Ok(Page(Html::parse_document(body.as_str())))
     }
 
-    if let Some(ics) = scrape_ics(key).await {
-        let cache_item = CacheItem {
-            ttl: now + Duration::hours(1),
-            ics,
-        };
+    pub fn extract_events(self) -> Result<Vec<Event>> {
+        self.0
+            .select(&CALENDAR_SELECTOR)
+            .next()
+            .ok_or(anyhow!("Page does not contain a calendar"))?;
 
-        let response = Response::builder(200)
-            .content_type("text/calendar")
-            .body(cache_item.ics.as_str())
-            .build();
-
-        cache.insert(key.into(), cache_item);
-
-        Ok(response)
-    } else {
-        Ok(Response::builder(400)
-            .body(format!("Error: Invalid Key ({key})\n"))
-            .build())
+        Ok(vec![])
     }
+}
+
+fn build_ics<'a>(events: Vec<Event>, key: &'a str) -> ICalendar<'a> {
+    let mut cest = Daylight::new("19700329T020000", "+0100", "+0200");
+    cest.push(TzName::new("CEST"));
+    cest.push(RRule::new("FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"));
+
+    let mut cet = ics::Standard::new("19701025T030000", "+0200", "+0100");
+    cet.push(TzName::new("CET"));
+    cet.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
+
+    let mut timezone = TimeZone::daylight("Europe/Berlin", cest);
+    timezone.add_standard(cet);
+
+    let mut ics = ICalendar::new("2.0", key);
+    ics.add_timezone(timezone);
+
+    for event in events {
+        ics.add_event(event.to_ics_event());
+    }
+
+    ics
+}
+
+fn print_events(events: &Vec<Event>) {}
+
+async fn serve() -> Result<()> {
+    Ok(())
+}
+
+fn setup_logging() {
+    if env::var("LOG").is_err() {
+        env::set_var("LOG", "rapla_to_ics=info");
+    }
+
+    pretty_env_logger::init_custom_env("LOG");
 }
 
 #[async_std::main]
-async fn main() -> Result<(), std::io::Error> {
-    json_env_logger::init();
+async fn main() -> Result<()> {
+    let matches = Command::new(crate_name!())
+        .version(env!("CARGO_PKG_VERSION"))
+        .subcommand_required(true)
+        .subcommand(Command::new("serve"))
+        .subcommand(Command::new("fetch").arg(Arg::new("url").required(true).num_args(1)))
+        .get_matches();
 
-    let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
-    let cache = Arc::new(Mutex::new(HashMap::new()));
-    let mut app: Server<State> = tide::with_state(cache.clone());
+    setup_logging();
 
-    app.with(log::LogMiddleware::new());
-    app.at("/:key").get(handle_request);
-    app.at("/").get(|_| async {
-        Ok(Response::builder(301)
-            .header("Location", env!("CARGO_PKG_REPOSITORY"))
-            .build())
-    });
+    match matches.subcommand() {
+        Some(("serve", _)) => serve().await,
 
-    let app_handle = app.listen(format!("0.0.0.0:{port}"));
-    let sweeper_handle = task::spawn(async move {
-        let hour = Duration::hours(1).to_std().unwrap();
-        loop {
-            task::sleep(hour).await;
-            let now = Utc::now();
-            cache.lock().await.retain(|_, value| value.ttl > now);
+        Some(("fetch", fetch_matches)) => {
+            let url = fetch_matches.get_one::<String>("url").unwrap();
+            let events = Page::fetch(url).await?.extract_events()?;
+            print_events(&events);
+            Ok(())
         }
-    });
 
-    futures::join!(app_handle, sweeper_handle).0
+        _ => unreachable!(),
+    }
 }
