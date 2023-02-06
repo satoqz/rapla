@@ -1,81 +1,95 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nci = {
+      url = "github:yusdacra/nix-cargo-integration";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     nixpkgs,
-    utils,
+    nci,
     ...
-  }:
-    utils.lib.eachDefaultSystem (system: let
-      name = "rapla-to-ics";
-      version = "0.2.0";
+  }: let
+    inherit (nixpkgs) lib;
 
-      inherit (nixpkgs) lib;
+    name = "rapla-to-ics";
 
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+    deps = {
+      buildInputs = pkgs:
+        [
+          pkgs.openssl
+        ]
+        ++ lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.libiconv
+          pkgs.darwin.apple_sdk.frameworks.Security
+          pkgs.darwin.apple_sdk.frameworks.CoreFoundation
+        ];
 
-      nativeBuildInputs = [
-        pkgs.rustc
-        pkgs.cargo
+      nativeBuildInputs = pkgs: [
         pkgs.pkg-config
       ];
 
-      buildInputs =
-        [pkgs.openssl]
-        ++ lib.optionals pkgs.stdenv.isDarwin (with pkgs.darwin.apple_sdk; [
-          frameworks.Security
-        ]);
-    in rec {
-      packages.${name} = pkgs.rustPlatform.buildRustPackage {
-        inherit name version nativeBuildInputs buildInputs;
+      shell = pkgs: [
+        pkgs.rust-analyzer
+        pkgs.cargo-watch
+        pkgs.alejandra
+        pkgs.nil
+      ];
+    };
 
-        src = builtins.path {
-          inherit name;
-          path = ./.;
-        };
+    outputs = nci.lib.makeOutputs {
+      root = ./.;
 
-        cargoLock.lockFile = ./Cargo.lock;
-      };
+      pkgConfig = common: {
+        ${name} = {
+          overrides.libraries = {
+            buildInputs = deps.buildInputs common.pkgs;
+            nativeBuildInputs = deps.nativeBuildInputs common.pkgs;
+          };
 
-      packages.default = packages.${name};
-
-      packages."${name}-docker" = pkgs.dockerTools.buildLayeredImage {
-        inherit name;
-        tag = "latest";
-
-        contents = [
-          packages.default
-          pkgs.cacert
-        ];
-
-        config = {
-          Cmd = [name "serve"];
-          ExposedPorts."8080/tcp" = {};
+          build = true;
+          app = true;
         };
       };
 
-      formatter = pkgs.alejandra;
+      config = common: {
+        outputs.defaults = {
+          app = name;
+          package = name;
+        };
 
-      devShells.default = pkgs.mkShell {
-        inherit nativeBuildInputs buildInputs;
-        packages = [
-          # rust
-          pkgs.rustfmt
-          pkgs.rust-analyzer
-          pkgs.clippy
-          pkgs.cargo-watch
-
-          # nix
-          formatter
-          pkgs.nil
-        ];
+        shell.packages = deps.shell common.pkgs;
       };
-    });
+    };
+  in
+    outputs
+    // {
+      packages = lib.mapAttrs (system: packages: let
+        pkgs = import nixpkgs {
+          inherit system;
+        };
+      in
+        packages
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          "${name}-docker" = pkgs.dockerTools.buildLayeredImage {
+            inherit name;
+            tag = "latest";
+
+            contents = [
+              packages.default
+              pkgs.cacert
+            ];
+
+            config = {
+              Cmd = [name];
+              ExposedPorts."8080/tcp" = {};
+            };
+          };
+        })
+      outputs.packages;
+    };
 
   nixConfig = {
     extra-substituters = [

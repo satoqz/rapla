@@ -28,5 +28,5 @@ once_cell = "1.17.0"
 
 [profile.release]
 lto = true
-opt-level = "s"
+opt-level = 3
 strip = "symbols"
