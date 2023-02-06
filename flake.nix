@@ -43,11 +43,13 @@
       root = ./.;
 
       pkgConfig = common: {
-        ${name} = {
+        ${name} = rec {
           overrides.libraries = {
             buildInputs = deps.buildInputs common.pkgs;
             nativeBuildInputs = deps.nativeBuildInputs common.pkgs;
           };
+
+          depsOverrides.libraries = overrides.libraries;
 
           build = true;
           app = true;
