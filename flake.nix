@@ -20,6 +20,7 @@
       buildInputs = pkgs:
         [
           pkgs.openssl
+          pkgs.pkg-config
         ]
         ++ lib.optionals pkgs.stdenv.isDarwin [
           pkgs.libiconv
