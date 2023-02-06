@@ -35,7 +35,7 @@
       shell = pkgs: [
         pkgs.rust-analyzer
         pkgs.cargo-watch
-        pkgs.alejandra
+        pkgs.treefmt
         pkgs.nil
       ];
     };
