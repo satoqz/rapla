@@ -397,7 +397,9 @@ async fn serve_ics() -> Result<()> {
         {
             Ok(ics) => {
                 info!("Successfully scraped result for '{key}'");
-                Response::builder(200).body(ics.to_string())
+                Response::builder(200)
+                    .body(ics.to_string())
+                    .content_type("text/calendar")
             }
             Err(err) => {
                 error!("Failed to scrape result for '{key}': {err}");
