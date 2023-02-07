@@ -14,8 +14,6 @@
   }: let
     inherit (nixpkgs) lib;
 
-    name = "rapla-to-ics";
-
     deps = {
       buildInputs = pkgs:
         [
@@ -44,7 +42,7 @@
       root = ./.;
 
       pkgConfig = common: {
-        ${name} = rec {
+        rapla = rec {
           overrides.libraries = {
             buildInputs = deps.buildInputs common.pkgs;
             nativeBuildInputs = deps.nativeBuildInputs common.pkgs;
@@ -59,8 +57,8 @@
 
       config = common: {
         outputs.defaults = {
-          app = name;
-          package = name;
+          app = "rapla";
+          package = "rapla";
         };
 
         shell.packages = deps.shell common.pkgs;
@@ -76,19 +74,22 @@
       in
         packages
         // lib.optionalAttrs pkgs.stdenv.isLinux {
-          "${name}-docker" = pkgs.dockerTools.buildLayeredImage {
-            inherit name;
+          "rapla-docker" = pkgs.dockerTools.buildLayeredImage {
+            name = "rapla-to-ics";
             tag = "latest";
 
             contents = [
-              packages.default
               pkgs.cacert
             ];
 
-            config = {
-              Cmd = [name];
-              ExposedPorts."8080/tcp" = {};
-            };
+            config.Cmd = [
+              "${packages.rapla}/bin/rapla"
+              "serve-ics"
+            ];
+
+            config.Env = ["LOG=rapla=info"];
+
+            config.ExposedPorts."8080/tcp" = {};
           };
         })
       outputs.packages;

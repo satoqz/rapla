@@ -13,10 +13,8 @@ Example:
 
 ```
 https://rapla.dhbw-stuttgart.de/rapla?key={your_rapla_key}
--> {application_url}/{your_rapla_key}(.ics?)
+-> {application_url}/{your_rapla_key}
 ```
-
-Optionally, you can append the `.ics` file extension after the key.
 
 ## Official instance
 

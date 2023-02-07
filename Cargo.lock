@@ -1959,7 +1959,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rapla-to-ics"
+name = "rapla"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -1,5 +1,5 @@
 [package]
-name = "rapla-to-ics"
+name = "rapla"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
