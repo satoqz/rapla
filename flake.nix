@@ -87,8 +87,6 @@
               "serve-ics"
             ];
 
-            config.Env = ["LOG=rapla=info"];
-
             config.ExposedPorts."8080/tcp" = {};
           };
         })

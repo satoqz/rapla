@@ -384,7 +384,9 @@ async fn serve_ics() -> Result<()> {
             return Ok(Response::new(404));
         }
 
-        info!("Incoming request for '${key}'");
+        let remote = req.remote().unwrap_or("unknown");
+
+        info!("Incoming request for '{key}' by '{remote}");
 
         let now = Utc::now().date_naive();
 
@@ -408,7 +410,12 @@ async fn serve_ics() -> Result<()> {
         }
         .build();
 
-        info!("Sending response status: {}", response.status());
+        info!(
+            "Sending response status '{}' to '{}'",
+            response.status(),
+            remote
+        );
+
         Ok(response)
     });
 
@@ -421,7 +428,7 @@ async fn serve_ics() -> Result<()> {
 
 fn setup_logging() {
     if env::var("LOG").is_err() {
-        env::set_var("LOG", "rapla_to_ics=info");
+        env::set_var("LOG", format!("{}=info", crate_name!()));
     }
 
     pretty_env_logger::init_custom_env("LOG");
