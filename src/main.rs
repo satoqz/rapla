@@ -104,11 +104,7 @@ impl Page {
         self.html
             .select(&CALENDAR_SELECTOR)
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("Page does not contain a calendar"))?;
-=======
             .context("Page does not contain a calendar")?;
->>>>>>> fix-4th-semester
 
         debug!("Cleared calendar selection");
 
@@ -119,11 +115,7 @@ impl Page {
         debug!("Day: {day}, Month: {month}");
 
         let week_start = NaiveDate::from_ymd_opt(year, month, day)
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("Failed to construct week start date"))?;
-=======
             .context("Failed to construct week start date")?;
->>>>>>> fix-4th-semester
 
         let mut events = Vec::new();
 
@@ -148,11 +140,7 @@ impl Page {
             .html
             .select(&YEAR_SELECTOR)
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No selected year element"))?
-=======
             .context("No selected year element")?
->>>>>>> fix-4th-semester
             .inner_html();
 
         debug!("Raw year: {year_raw}");
@@ -165,19 +153,11 @@ impl Page {
             .html
             .select(&WEEK_HEADER_SELECTOR)
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No week header found"))?
-            .inner_html()
-            .split(' ')
-            .nth(1)
-            .ok_or_else(|| anyhow!("Week header does not have second part"))?
-=======
             .context("No week header found")?
             .inner_html()
             .split(' ')
             .nth(1)
             .context("Week header does not have second part")?
->>>>>>> fix-4th-semester
             .trim_end_matches('.')
             .split('.')
             .map(|item| item.parse().map_err(|err: ParseIntError| anyhow!(err)))
@@ -187,19 +167,11 @@ impl Page {
 
         let day = day_month
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("Week start does not contain day"))?;
-
-        let month = day_month
-            .next()
-            .ok_or_else(|| anyhow!("Week start does not contain month"))?;
-=======
             .context("Week start does not contain day")?;
 
         let month = day_month
             .next()
             .context("Week start does not contain month")?;
->>>>>>> fix-4th-semester
 
         Ok((day, month))
     }
@@ -208,20 +180,12 @@ impl Page {
         let table = block
             .select(&TABLE_SELECTOR)
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No table inside block"))?;
-=======
             .context("No table inside block")?;
->>>>>>> fix-4th-semester
 
         let event_type = block
             .select(&STRONG_SELECTOR)
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No event type section"))?
-=======
             .context("No event type section")?
->>>>>>> fix-4th-semester
             .inner_html()
             .to_lowercase();
 
@@ -230,15 +194,9 @@ impl Page {
         let title = table
             .select(&TD_SELECTOR)
             .nth(1)
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No second td element (title string) in table"))?
-            .inner_html()
-            // TODO: properly unescape html in the future
-=======
             .context("No second td element (title string) in table")?
             .inner_html()
             // TODO: properly unescape html, probably overkill
->>>>>>> fix-4th-semester
             .replace("&amp;", "&");
 
         debug!("Title: {title}");
@@ -246,36 +204,21 @@ impl Page {
         let times_raw = block
             .select(&DIV_SELECTOR)
             .nth(1)
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No second div element (time info string) in block"))?
-=======
             .context("No second div element (time info string) in block")?
->>>>>>> fix-4th-semester
             .inner_html();
 
         debug!("Raw times: {times_raw}");
 
-<<<<<<< HEAD
-        // `times_split` can follow three formats:
-        // 1. "Mo 01.01.2000 00:00-00:00"
-        // 2. "Mo 00:00-00:00 wöchentlich"
-        // 3. "00:00-00:00 täglich"
-=======
         // `times_raw` can follow three formats:
         // 1. "Mo 01.01.2000 00:00-00:00"
         // 2. "Mo 00:00-00:00 wöchentlich"
         // 3. "00:00-00:00 täglich"
 
->>>>>>> fix-4th-semester
         let mut times_split = times_raw.split(' ');
 
         let weekday_raw = times_split
             .next()
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No weekday element in times split"))?;
-=======
             .context("No weekday element in times split")?;
->>>>>>> fix-4th-semester
 
         debug!("Raw weekday {weekday_raw}");
 
@@ -299,27 +242,6 @@ impl Page {
 
         let mut hours = times_split
             .find_map(|item| item.contains(':').then_some(item.splitn(2, '-')))
-<<<<<<< HEAD
-            .ok_or_else(|| anyhow!("No hours element in times split"))?;
-
-        let start = NaiveTime::parse_from_str(
-            hours
-                .next()
-                .ok_or_else(|| anyhow!("No first element in hours"))?,
-            "%H:%M",
-        )
-        .context("Parse start time")?;
-
-        debug!("Start time {start}");
-
-        let end = NaiveTime::parse_from_str(
-            hours
-                .next()
-                .ok_or_else(|| anyhow!("No second element in hours"))?,
-            "%H:%M",
-        )
-        .context("Parse end time")?;
-=======
             .context("No hours element in times split")?;
 
         let start =
@@ -331,7 +253,6 @@ impl Page {
         let end =
             NaiveTime::parse_from_str(hours.next().context("No second element in hours")?, "%H:%M")
                 .context("Parse end time")?;
->>>>>>> fix-4th-semester
 
         debug!("End time {end}");
 
