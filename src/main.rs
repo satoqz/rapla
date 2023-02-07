@@ -386,7 +386,7 @@ async fn serve_ics() -> Result<()> {
 
         let remote = req.remote().unwrap_or("unknown");
 
-        info!("Incoming request for '{key}' by '{remote}");
+        info!("Incoming request for '{key}' by '{remote}'");
 
         let now = Utc::now().date_naive();
 
