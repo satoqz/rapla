@@ -79,7 +79,7 @@ impl Event {
             start: NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
             end: NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
             title: "Klausur Lineare Algebra".into(),
-            location: "LE1-A4.06-Vorlesungsraum".into(),
+            location: "April Fools".into(),
             lecturers: "Lindemann".into(),
         }
     }
