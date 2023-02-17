@@ -1,6 +1,6 @@
 [package]
 name = "rapla"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 
@@ -14,7 +14,7 @@ url = "2.3.1"
 ics = "0.5.8"
 chrono = "0.4.23"
 
-surf = { version = "2.3.2", features = ["hyper-client"], default-features = false }
+surf = { version = "2.3.2", features = ["h1-client-rustls"], default-features = false }
 scraper = "0.14.0"
 
 tide = "0.16.0"

@@ -7,90 +7,63 @@
     };
   };
 
-  outputs = {
-    nixpkgs,
-    nci,
-    ...
-  }: let
-    inherit (nixpkgs) lib;
+  outputs = { nixpkgs, nci, ... }:
 
-    deps = {
-      buildInputs = pkgs:
-        [
-          pkgs.openssl
-          pkgs.pkg-config
-        ]
-        ++ lib.optionals pkgs.stdenv.isDarwin [
-          pkgs.libiconv
-          pkgs.darwin.apple_sdk.frameworks.Security
-          pkgs.darwin.apple_sdk.frameworks.CoreFoundation
-        ];
+    let
+      inherit (nixpkgs) lib;
 
-      nativeBuildInputs = pkgs: [
-        pkgs.pkg-config
-      ];
-
-      shell = pkgs: [
-        pkgs.rust-analyzer
-        pkgs.cargo-watch
-        pkgs.treefmt
-        pkgs.nil
-      ];
-    };
-
-    outputs = nci.lib.makeOutputs {
-      root = ./.;
-
-      pkgConfig = common: {
-        rapla = rec {
-          overrides.libraries = {
-            buildInputs = deps.buildInputs common.pkgs;
-            nativeBuildInputs = deps.nativeBuildInputs common.pkgs;
+      config = common:
+        let
+          inherit (common) pkgs;
+        in
+        {
+          outputs.defaults = {
+            app = "rapla";
+            package = "rapla";
           };
 
-          depsOverrides.libraries = overrides.libraries;
-
-          build = true;
-          app = true;
+          shell.packages = [
+            pkgs.rust-analyzer
+            pkgs.cargo-watch
+            pkgs.nil
+          ];
         };
+
+      pkgConfig = common:
+        let
+          inherit (common.pkgs) stdenv darwin;
+        in
+        {
+          rapla.overrides.libraries.buildInputs =
+            lib.optional stdenv.isDarwin darwin.apple_sdk.frameworks.Security;
+
+          rapla.build = true;
+          rapla.app = true;
+        };
+
+      outputs = nci.lib.makeOutputs {
+        inherit config pkgConfig;
+        root = ./.;
       };
 
-      config = common: {
-        outputs.defaults = {
-          app = "rapla";
-          package = "rapla";
-        };
-
-        shell.packages = deps.shell common.pkgs;
-      };
-    };
-  in
-    outputs
-    // {
-      packages = lib.mapAttrs (system: packages: let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
-      in
-        packages
-        // lib.optionalAttrs pkgs.stdenv.isLinux {
+      withDockerImage = (system: packages:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        packages // lib.optionalAttrs pkgs.stdenv.isLinux {
           "rapla-docker" = pkgs.dockerTools.buildLayeredImage {
             name = "rapla-to-ics";
             tag = "latest";
-
-            contents = [
-              pkgs.cacert
-            ];
-
-            config.Cmd = [
-              "${packages.rapla}/bin/rapla"
-              "serve-ics"
-            ];
-
-            config.ExposedPorts."8080/tcp" = {};
+            config = {
+              Cmd = [ "${packages.rapla}/bin/rapla" "serve-ics" ];
+              ExposedPorts."8080/tcp" = { };
+            };
           };
-        })
-      outputs.packages;
+        });
+    in
+
+    outputs // {
+      packages = lib.mapAttrs withDockerImage outputs.packages;
     };
 
   nixConfig = {
