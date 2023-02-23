@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context, Result};
+use axum::{extract::Path, http::StatusCode, response::Response, routing, Router, Server};
 use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use clap::{crate_name, Arg, Command};
 use futures::future;
@@ -6,12 +7,11 @@ use ics::{
     properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
     Daylight, ICalendar, TimeZone,
 };
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
-use std::env;
 use std::num::ParseIntError;
-use tide::{Request, Response};
+use std::{env, process};
 use url::Url;
 
 macro_rules! selector {
@@ -90,11 +90,11 @@ struct Page {
 }
 
 impl Page {
-    pub async fn fetch<S: AsRef<str>>(url: S) -> Result<Page> {
+    pub async fn fetch(url: &String) -> Result<Page> {
         Url::parse(url.as_ref())?;
 
-        debug!("GET {}", url.as_ref());
-        let mut resp = surf::get(url).await.map_err(|err| anyhow!(err))?;
+        debug!("GET {}", url);
+        let resp = reqwest::get(url).await.map_err(|err| anyhow!(err))?;
 
         let status = resp.status();
         if status != 200 {
@@ -102,11 +102,7 @@ impl Page {
         }
 
         debug!("Reading response body");
-        let body = resp
-            .take_body()
-            .into_string()
-            .await
-            .map_err(|err| anyhow!(err))?;
+        let body = resp.text().await.map_err(|err| anyhow!(err))?;
 
         Ok(Page {
             html: Html::parse_document(body.as_str()),
@@ -335,7 +331,7 @@ async fn fetch_range_and_create_ics(
         .iter_weeks()
         .take_while(|date| *date < end)
         .map(|date| async move {
-            Page::fetch(format!(
+            Page::fetch(&format!(
                 "{}?key={}{}",
                 BASE_URL,
                 key,
@@ -387,90 +383,81 @@ fn print_events(events: &mut [Event]) {
     }
 }
 
-async fn serve_ics() -> Result<()> {
+async fn run_server() -> Result<()> {
+    let app = Router::new().route(
+        "/:key",
+        routing::get(|Path(key): Path<String>| async move {
+            let resp = Response::builder();
+
+            if key == "favicon.ico" {
+                return resp
+                    .status(StatusCode::NOT_FOUND)
+                    .body("Not found".into())
+                    .unwrap();
+            }
+
+            let now = Utc::now().date_naive();
+
+            let ics = fetch_range_and_create_ics(
+                key.as_str(),
+                now - Duration::weeks(25),
+                now + Duration::weeks(25),
+            )
+            .await;
+
+            match ics {
+                Ok(ics) => {
+                    info!("Successfully scraped result for '{key}'");
+                    resp.status(StatusCode::OK)
+                        .header("Content-Type", "text/calendar")
+                        .body(ics.to_string())
+                        .unwrap()
+                }
+                Err(err) => {
+                    error!("Failed to scrape result for '{key}': {err}");
+                    resp.status(StatusCode::BAD_REQUEST)
+                        .body("Bad Request".into())
+                        .unwrap()
+                }
+            }
+        }),
+    );
+
     let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
-    let mut app = tide::new();
-
-    app.at("/:key").get(|req: Request<()>| async move {
-        let key = req.url().path().trim().trim_matches('/');
-
-        // browsers are so annoying
-        if key == "favicon.ico" {
-            return Ok(Response::new(404));
-        }
-
-        let remote = req.remote().unwrap_or("unknown");
-
-        let agent = req
-            .header("User-Agent")
-            .map(|it| it.as_str())
-            .unwrap_or("None");
-
-        info!("Incoming request by '{remote}'");
-        info!("User-Agent: '{agent}'");
-        info!("Key: '{key}'");
-
-        let now = Utc::now().date_naive();
-
-        let response = match fetch_range_and_create_ics(
-            key,
-            now - Duration::weeks(25),
-            now + Duration::weeks(25),
-        )
-        .await
-        {
-            Ok(ics) => {
-                info!("Successfully scraped result for '{key}'");
-                Response::builder(200)
-                    .body(ics.to_string())
-                    .content_type("text/calendar")
-            }
-            Err(err) => {
-                error!("Failed to scrape result for '{key}': {err}");
-                Response::builder(400).body(err.to_string())
-            }
-        }
-        .build();
-
-        info!(
-            "Sending response status '{}' to '{}'",
-            response.status(),
-            remote
-        );
-
-        Ok(response)
-    });
-
     let url = format!("[::]:{port}");
     info!("Listening on {url}");
-    app.listen(url).await?;
 
-    Ok(())
+    Server::bind(&url.parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .context("Failed to start server")
 }
 
-fn setup_logging() {
+#[tokio::main]
+async fn main() -> Result<()> {
+    let matches = Command::new(crate_name!())
+        .version(env!("CARGO_PKG_VERSION"))
+        .subcommand_required(true)
+        .subcommand(Command::new("server"))
+        .subcommand(Command::new("fetch").arg(Arg::new("url").required(true).num_args(1)))
+        .get_matches();
+
     if env::var("LOG").is_err() {
         env::set_var("LOG", format!("{}=info", crate_name!()));
     }
 
     pretty_env_logger::init_custom_env("LOG");
-}
 
-#[async_std::main]
-async fn main() -> Result<()> {
-    let matches = Command::new(crate_name!())
-        .version(env!("CARGO_PKG_VERSION"))
-        .subcommand_required(true)
-        .subcommand(Command::new("serve-ics"))
-        .subcommand(Command::new("parse-url").arg(Arg::new("url").required(true).num_args(1)))
-        .get_matches();
-
-    setup_logging();
+    ctrlc::set_handler(|| {
+        warn!("Received SIGTERM");
+        process::exit(1);
+    })
+    .unwrap();
 
     match matches.subcommand() {
-        Some(("serve-ics", _)) => serve_ics().await,
-        Some(("parse-url", pmatches)) => {
-            let url = pmatches.get_one::<String>("url").unwrap();
+        Some(("server", _)) => run_server().await,
+        Some(("fetch", fmatches)) => {
+            let url = fmatches.get_one::<String>("url").unwrap();
             let mut events = Page::fetch(url).await?.extract_events()?;
             print_events(&mut events);
             Ok(())
