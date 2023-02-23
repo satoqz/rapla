@@ -1,7 +1,5 @@
 # `rapla-to-ics`
 
-[![build](https://github.com/satoqz/rapla-to-ics/actions/workflows/build.yml/badge.svg)](https://github.com/satoqz/rapla-to-ics/actions/workflows/build.yml)
-
 Server to transform DHBW Rapla Timetable links into the iCalendar format.
 Import any Rapla timetable into your calendar provider of choice (Outlook, Google, Proton, Apple...).
 
