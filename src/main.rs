@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use axum::{extract::Path, http::StatusCode, response::Response, routing, Router, Server};
 use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use clap::{crate_name, Arg, Command};
@@ -10,7 +10,6 @@ use ics::{
 use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
-use std::num::ParseIntError;
 use std::{env, process};
 use url::Url;
 
@@ -81,15 +80,15 @@ impl Page {
         Url::parse(url.as_ref())?;
 
         debug!("GET {}", url);
-        let resp = reqwest::get(url).await.map_err(|err| anyhow!(err))?;
+        let resp = reqwest::get(url).await.map_err(anyhow::Error::from)?;
 
         let status = resp.status();
         if status != 200 {
-            return Err(anyhow!("Got response status {status}"));
+            bail!("Got response status {status}");
         }
 
         debug!("Reading response body");
-        let body = resp.text().await.map_err(|err| anyhow!(err))?;
+        let body = resp.text().await.map_err(anyhow::Error::from)?;
 
         Ok(Page {
             html: Html::parse_document(body.as_str()),
@@ -156,7 +155,7 @@ impl Page {
             .context("Week header does not have second part")?
             .trim_end_matches('.')
             .split('.')
-            .map(|item| item.parse().map_err(|err: ParseIntError| anyhow!(err)))
+            .map(|item| item.parse().map_err(anyhow::Error::from))
             .collect::<Result<Vec<_>>>()
             .context("Week start parts did not parse to numbers")?
             .into_iter();
