@@ -9,8 +9,8 @@ use ics::{
 use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
-use std::{env, process};
-use url::Url;
+use std::env;
+use tokio::signal;
 
 macro_rules! selector {
     ($name:ident, $query:expr) => {
@@ -74,9 +74,7 @@ struct Page {
 }
 
 impl Page {
-    pub async fn fetch(url: &String) -> Result<Page> {
-        Url::parse(url.as_ref())?;
-
+    pub async fn fetch(url: &str) -> Result<Page> {
         debug!("GET {}", url);
         let resp = reqwest::get(url).await.map_err(anyhow::Error::from)?;
 
@@ -341,6 +339,32 @@ async fn fetch_range_and_create_ics(
     Ok(ics)
 }
 
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    warn!("signal received, starting graceful shutdown");
+}
+
 async fn run_server() -> Result<()> {
     let app = Router::new().route(
         "/:key",
@@ -387,6 +411,7 @@ async fn run_server() -> Result<()> {
 
     Server::bind(&url.parse().unwrap())
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .context("Failed to start server")
 }
@@ -398,12 +423,6 @@ async fn main() -> Result<()> {
     }
 
     pretty_env_logger::init_custom_env("LOG");
-
-    ctrlc::set_handler(|| {
-        warn!("Received SIGTERM");
-        process::exit(1);
-    })
-    .unwrap();
 
     run_server().await
 }

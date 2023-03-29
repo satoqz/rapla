@@ -5,25 +5,29 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-tokio = { version = "1.25.0", features = ["full"] }
+tokio = { version = "1.25.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+] }
 futures = "0.3.26"
-
-url = "2.3.1"
-ics = "0.5.8"
-chrono = "0.4.23"
-
-reqwest = { version = "0.11.14", features = ["rustls-tls", "trust-dns"], default-features = false }
-scraper = "0.14.0"
 
 axum = "0.6.7"
 
+ics = "0.5.8"
+chrono = "0.4.23"
+
+reqwest = { version = "0.11.14", features = [
+    "rustls-tls",
+    "trust-dns",
+], default-features = false }
+scraper = "0.14.0"
+
 anyhow = "1.0.69"
+once_cell = "1.17.0"
 
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
-
-once_cell = "1.17.0"
-ctrlc = "3.2.5"
 
 [profile.release]
 lto = true
