@@ -13,7 +13,7 @@ use ics::{
 };
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
-use std::env;
+use std::{env, net};
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, error, info, warn};
@@ -87,10 +87,10 @@ impl Page {
 
         let status = resp.status();
         if status != 200 {
-            bail!("Got response status {status}");
+            bail!("got response status {status}");
         }
 
-        debug!("Reading response body");
+        debug!("reading response body");
         let body = resp.text().await.map_err(anyhow::Error::from)?;
 
         Ok(Page {
@@ -102,33 +102,33 @@ impl Page {
         self.html
             .select(&CALENDAR_SELECTOR)
             .next()
-            .context("Page does not contain a calendar")?;
+            .context("page does not contain a calendar")?;
 
-        debug!("Cleared calendar selection");
+        debug!("cleared calendar selection");
 
         let year = self.parse_year()?;
-        debug!("Year: {year}");
+        debug!("year: {year}");
 
         let (day, month) = self.parse_week_start()?;
-        debug!("Day: {day}, Month: {month}");
+        debug!("day: {day}, month: {month}");
 
         let week_start = NaiveDate::from_ymd_opt(year, month, day)
-            .context("Failed to construct week start date")?;
+            .context("failed to construct week start date")?;
 
         let mut events = Vec::new();
 
         for block in self.html.select(&BLOCK_SELECTOR) {
             if let Some(event) = Self::parse_block(block, &week_start)
-                .context(format!("Week start: {week_start}"))?
+                .context(format!("week start: {week_start}"))?
             {
-                debug!("Successfully parsed block");
+                debug!("successfully parsed block");
                 events.push(event);
             } else {
-                debug!("Skipped block");
+                debug!("skipped block");
             }
         }
 
-        debug!("Parsed all blocks");
+        debug!("parsed all blocks");
 
         Ok(events)
     }
@@ -138,10 +138,10 @@ impl Page {
             .html
             .select(&YEAR_SELECTOR)
             .next()
-            .context("No selected year element")?
+            .context("no selected year element")?
             .inner_html();
 
-        debug!("Raw year: {year_raw}");
+        debug!("raw year: {year_raw}");
 
         year_raw.parse().context("Parse year")
     }
@@ -151,25 +151,25 @@ impl Page {
             .html
             .select(&WEEK_HEADER_SELECTOR)
             .next()
-            .context("No week header found")?
+            .context("no week header found")?
             .inner_html()
             .split(' ')
             .nth(1)
-            .context("Week header does not have second part")?
+            .context("week header does not have second part")?
             .trim_end_matches('.')
             .split('.')
             .map(|item| item.parse().map_err(anyhow::Error::from))
             .collect::<Result<Vec<_>>>()
-            .context("Week start parts did not parse to numbers")?
+            .context("week start parts did not parse to numbers")?
             .into_iter();
 
         let day = day_month
             .next()
-            .context("Week start does not contain day")?;
+            .context("week start does not contain day")?;
 
         let month = day_month
             .next()
-            .context("Week start does not contain month")?;
+            .context("week start does not contain month")?;
 
         Ok((day, month))
     }
@@ -178,7 +178,7 @@ impl Page {
         let table = block
             .select(&TABLE_SELECTOR)
             .next()
-            .context("No table inside block")?;
+            .context("no table inside block")?;
 
         let event_type = block
             .select(&STRONG_SELECTOR)
@@ -192,7 +192,7 @@ impl Page {
         let title = table
             .select(&TD_SELECTOR)
             .nth(1)
-            .context("No second td element (title string) in table")?
+            .context("no second td element (title string) in table")?
             .inner_html()
             // TODO: properly unescape html, probably overkill
             .replace("&amp;", "&");
@@ -202,7 +202,7 @@ impl Page {
         let times_raw = block
             .select(&DIV_SELECTOR)
             .nth(1)
-            .context("No second div element (time info string) in block")?
+            .context("no second div element (time info string) in block")?
             .inner_html();
 
         debug!("Raw times: {times_raw}");
@@ -216,7 +216,7 @@ impl Page {
 
         let weekday_raw = times_split
             .next()
-            .context("No weekday element in times split")?;
+            .context("no weekday element in times split")?;
 
         debug!("Raw weekday {weekday_raw}");
 
@@ -240,23 +240,23 @@ impl Page {
 
         let mut hours = times_split
             .find_map(|item| item.contains(':').then_some(item.splitn(2, '-')))
-            .context("No hours element in times split")?;
+            .context("no hours element in times split")?;
 
         let start =
-            NaiveTime::parse_from_str(hours.next().context("No first element in hours")?, "%H:%M")
-                .context("Parse start time")?;
+            NaiveTime::parse_from_str(hours.next().context("no first element in hours")?, "%H:%M")
+                .context("parse start time")?;
 
-        debug!("Start time {start}");
+        debug!("start time {start}");
 
         let end =
-            NaiveTime::parse_from_str(hours.next().context("No second element in hours")?, "%H:%M")
-                .context("Parse end time")?;
+            NaiveTime::parse_from_str(hours.next().context("no second element in hours")?, "%H:%M")
+                .context("parse end time")?;
 
-        debug!("End time {end}");
+        debug!("end time {end}");
 
         let date = *week_start + Duration::days(weekday);
 
-        debug!("Date {date}");
+        debug!("date {date}");
 
         let lecturers = match block
             .select(&PERSON_SELECTOR)
@@ -400,6 +400,8 @@ async fn handle_request(Path(key): Path<String>) -> Response {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let port = env::var("PORT").map_or_else(|_| Ok(8080), |port| port.parse::<u16>())?;
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -417,13 +419,12 @@ async fn main() -> Result<()> {
         .route("/:key", routing::get(handle_request))
         .layer(TraceLayer::new_for_http());
 
-    let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
-    let url = format!("[::]:{port}");
-    info!("Listening on {url}");
+    let addr = net::SocketAddr::from(([0, 0, 0, 0], port));
+    info!("listening on {addr}");
 
-    Server::bind(&url.parse().unwrap())
+    Server::bind(&addr)
         .serve(app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .context("Failed to start server")
+        .context("failed to start server")
 }
