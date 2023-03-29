@@ -1,5 +1,10 @@
 use anyhow::{bail, Context, Result};
-use axum::{extract::Path, http::StatusCode, response::Response, routing, Router, Server};
+use axum::{
+    extract::Path,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing, Router, Server,
+};
 use chrono::{Duration, NaiveDate, NaiveTime, Utc};
 use futures::future;
 use ics::{
@@ -365,45 +370,34 @@ async fn shutdown_signal() {
     warn!("signal received, starting graceful shutdown");
 }
 
-async fn run_server() -> Result<()> {
-    let app = Router::new().route(
-        "/:key",
-        routing::get(|Path(key): Path<String>| async move {
-            let resp = Response::builder();
+async fn handle_request(Path(key): Path<String>) -> Response {
+    if ["favicon.ico", "robots.txt"].contains(&key.as_str()) {
+        return (StatusCode::NOT_FOUND, "Not Found").into_response();
+    }
 
-            if key == "favicon.ico" {
-                return resp
-                    .status(StatusCode::NOT_FOUND)
-                    .body("Not found".into())
-                    .unwrap();
-            }
+    let now = Utc::now().date_naive();
+    let weeks = Duration::weeks(25);
+    let ics = fetch_range_and_create_ics(key.as_str(), now - weeks, now + weeks).await;
 
-            let now = Utc::now().date_naive();
-
-            let ics = fetch_range_and_create_ics(
-                key.as_str(),
-                now - Duration::weeks(25),
-                now + Duration::weeks(25),
+    ics.map_or_else(
+        |err| {
+            error!("Failed to scrape result for '{key}': {err}");
+            (StatusCode::BAD_REQUEST, "Bad Request").into_response()
+        },
+        |ics| {
+            info!("Successfully scraped result for '{key}'");
+            (
+                StatusCode::OK,
+                [("Content-Type", "text/calendar")],
+                ics.to_string(),
             )
-            .await;
+                .into_response()
+        },
+    )
+}
 
-            match ics {
-                Ok(ics) => {
-                    info!("Successfully scraped result for '{key}'");
-                    resp.status(StatusCode::OK)
-                        .header("Content-Type", "text/calendar")
-                        .body(ics.to_string())
-                        .unwrap()
-                }
-                Err(err) => {
-                    error!("Failed to scrape result for '{key}': {err}");
-                    resp.status(StatusCode::BAD_REQUEST)
-                        .body("Bad Request".into())
-                        .unwrap()
-                }
-            }
-        }),
-    );
+async fn run_server() -> Result<()> {
+    let app = Router::new().route("/:key", routing::get(handle_request));
 
     let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
     let url = format!("[::]:{port}");
