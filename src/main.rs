@@ -11,11 +11,13 @@ use ics::{
     properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
     Daylight, ICalendar, TimeZone,
 };
-use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
 use std::env;
 use tokio::signal;
+use tower_http::trace::TraceLayer;
+use tracing::{debug, error, info, warn};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 macro_rules! selector {
     ($name:ident, $query:expr) => {
@@ -381,11 +383,11 @@ async fn handle_request(Path(key): Path<String>) -> Response {
 
     ics.map_or_else(
         |err| {
-            error!("Failed to scrape result for '{key}': {err}");
+            error!("failed to scrape result for '{key}': {err}");
             (StatusCode::BAD_REQUEST, "Bad Request").into_response()
         },
         |ics| {
-            info!("Successfully scraped result for '{key}'");
+            info!("successfully scraped result for '{key}'");
             (
                 StatusCode::OK,
                 [("Content-Type", "text/calendar")],
@@ -396,8 +398,24 @@ async fn handle_request(Path(key): Path<String>) -> Response {
     )
 }
 
-async fn run_server() -> Result<()> {
-    let app = Router::new().route("/:key", routing::get(handle_request));
+#[tokio::main]
+async fn main() -> Result<()> {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "warn,rapla=info,tower_http=debug".into()),
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .pretty()
+                .with_file(false)
+                .with_line_number(false),
+        )
+        .init();
+
+    let app = Router::new()
+        .route("/:key", routing::get(handle_request))
+        .layer(TraceLayer::new_for_http());
 
     let port = env::var("PORT").unwrap_or_else(|_| "8080".into());
     let url = format!("[::]:{port}");
@@ -408,15 +426,4 @@ async fn run_server() -> Result<()> {
         .with_graceful_shutdown(shutdown_signal())
         .await
         .context("Failed to start server")
-}
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    if env::var("LOG").is_err() {
-        env::set_var("LOG", "rapla_to_ics=info");
-    }
-
-    pretty_env_logger::init_custom_env("LOG");
-
-    run_server().await
 }
