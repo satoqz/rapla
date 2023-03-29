@@ -72,19 +72,6 @@ impl<'a> From<Event> for ics::Event<'a> {
     }
 }
 
-impl Event {
-    pub fn april_fools() -> Event {
-        Event {
-            date: NaiveDate::from_ymd_opt(2023, 4, 1).unwrap(),
-            start: NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
-            end: NaiveTime::from_hms_opt(11, 30, 0).unwrap(),
-            title: "Klausur Lineare Algebra".into(),
-            location: "April Fools".into(),
-            lecturers: "Lindemann".into(),
-        }
-    }
-}
-
 struct Page {
     html: Html,
 }
@@ -353,8 +340,6 @@ async fn fetch_range_and_create_ics(
             ics.add_event(event.into());
         }
     }
-
-    ics.add_event(Event::april_fools().into());
 
     Ok(ics)
 }
