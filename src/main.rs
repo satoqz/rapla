@@ -1,7 +1,6 @@
 use anyhow::{bail, Context, Result};
 use axum::{extract::Path, http::StatusCode, response::Response, routing, Router, Server};
 use chrono::{Duration, NaiveDate, NaiveTime, Utc};
-use clap::{crate_name, Arg, Command};
 use futures::future;
 use ics::{
     properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
@@ -32,7 +31,6 @@ selector!(YEAR_SELECTOR, "select[name=year] > option[selected]");
 selector!(WEEK_HEADER_SELECTOR, "td.week_header > nobr");
 selector!(PERSON_SELECTOR, "span.person");
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct Event {
     date: NaiveDate,
     start: NaiveTime,
@@ -343,30 +341,6 @@ async fn fetch_range_and_create_ics(
     Ok(ics)
 }
 
-fn print_events(events: &mut [Event]) {
-    events.sort();
-
-    for (idx, event) in events.iter().enumerate() {
-        let prev = if idx != 0 { events.get(idx - 1) } else { None };
-        let next = events.get(idx + 1);
-
-        if prev.is_none() || prev.unwrap().date != event.date {
-            println!("{}", event.date);
-        }
-
-        println!("{} - {} {}", event.start, event.end, event.title);
-
-        println!(
-            "Location: {}, Lecturers: {}",
-            event.location, event.lecturers
-        );
-
-        if next.is_none() || next.unwrap().date != event.date {
-            println!();
-        }
-    }
-}
-
 async fn run_server() -> Result<()> {
     let app = Router::new().route(
         "/:key",
@@ -419,15 +393,8 @@ async fn run_server() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let matches = Command::new(crate_name!())
-        .version(env!("CARGO_PKG_VERSION"))
-        .subcommand_required(true)
-        .subcommand(Command::new("server"))
-        .subcommand(Command::new("fetch").arg(Arg::new("url").required(true).num_args(1)))
-        .get_matches();
-
     if env::var("LOG").is_err() {
-        env::set_var("LOG", format!("{}=info", crate_name!()));
+        env::set_var("LOG", "rapla_to_ics=info");
     }
 
     pretty_env_logger::init_custom_env("LOG");
@@ -438,15 +405,5 @@ async fn main() -> Result<()> {
     })
     .unwrap();
 
-    match matches.subcommand() {
-        Some(("server", _)) => run_server().await,
-        Some(("fetch", fmatches)) => {
-            let url = fmatches.get_one::<String>("url").unwrap();
-            let mut events = Page::fetch(url).await?.extract_events()?;
-            print_events(&mut events);
-            Ok(())
-        }
-
-        _ => unreachable!(),
-    }
+    run_server().await
 }

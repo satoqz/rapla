@@ -16,4 +16,4 @@ COPY --from=builder /usr/local/cargo/bin/rapla /
 
 EXPOSE 8080
 
-CMD ["/rapla", "server"]
+CMD ["/rapla"]
