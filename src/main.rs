@@ -417,6 +417,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/:key", routing::get(handle_request))
+        .fallback(|| async { (StatusCode::NOT_FOUND, "Not Found") })
         .layer(TraceLayer::new_for_http());
 
     let addr = net::SocketAddr::from(([0, 0, 0, 0], port));
