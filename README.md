@@ -1,40 +1,33 @@
-# `rapla-to-ics`
+## `rapla-sync`
 
-Server to transform DHBW Rapla Timetable links into the iCalendar format.
-Import any Rapla timetable into your calendar provider of choice (Outlook, Google, Proton, Apple...).
+### What is this?
 
-## Usage
+This is a web service that scrapes the rapla site of [DHBW Stuttgart](https://dhbw-stuttgart.de) hosted at [rapla.dhbw-stuttgart.de](https://rapla.dhbw-stuttgart.de).
+It then returns the scraped events in the iCalendar format, a standard supported by almost all calendar providers on the internet.
 
-Append your Rapla key (included in the parameters of the Rapla URL given to you) to the request URL.
+### Usage
 
-Example:
+The link that you use to visit your rapla schedule site contains a URL parameter called `key`. This key identifies your calendar.
+To sync your schedule to another provider, copy the value of the key parameter and append it to a URL that points to a rapla-sync instance.
 
-```
-https://rapla.dhbw-stuttgart.de/rapla?key={your_rapla_key}
--> {application_url}/{your_rapla_key}
-```
-
-## Official instance
-
-The official instance is available at https://blade.trench.world.
-This is the easiest way to use the project.
-
-Simply add
-
-```
-https://blade.trench.world/{your_rapla_key}
+```haskell
+from:  https://rapla.dhbw-stuttgart.de/rapla?key={YOUR_RAPLA_KEY}
+to:    https://{RAPLA_SYNC_INSTANCE}/{YOUR_RAPLA_KEY}
 ```
 
-using the "import url" or "subscribe" functionality depending on your calendar provider.
+### Official Instance
 
-## Docker image
+I host a public instance on [fly.io](https://fly.io). It is available at **https://rapla.fly.dev**.
 
-A Docker image automatically built by CI is available here:
+To use it, simply add 
 
 ```
-docker pull ghrc.io/satoqz/rapla-to-ics:latest
+https://rapla.fly.dev/{YOUR_RAPLA_KEY}
 ```
 
-## Credits
+to your calendar subscriptions.
 
-[JulianGroshaupt/dhbw_rapla-to-ics](https://github.com/JulianGroshaupt/dhbw_rapla-to-ics)
+### Container Image
+
+A container image built by GitHub Actions is available as `ghcr.io/satoqz/rapla-sync`
+
