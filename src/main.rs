@@ -118,8 +118,8 @@ impl Page {
         let mut events = Vec::new();
 
         for block in self.html.select(&BLOCK_SELECTOR) {
-            if let Some(event) = Self::parse_block(block, &week_start)
-                .context(format!("week start: {week_start}"))?
+            if let Some(event) =
+                Self::parse_block(block, week_start).context(format!("week start: {week_start}"))?
             {
                 debug!("successfully parsed block");
                 events.push(event);
@@ -174,7 +174,7 @@ impl Page {
         Ok((day, month))
     }
 
-    fn parse_block(block: ElementRef, week_start: &NaiveDate) -> Result<Option<Event>> {
+    fn parse_block(block: ElementRef, week_start: NaiveDate) -> Result<Option<Event>> {
         let table = block
             .select(&TABLE_SELECTOR)
             .next()
@@ -231,9 +231,7 @@ impl Page {
             _ => None,
         };
 
-        let weekday = if let Some(weekday) = maybe_weekday {
-            weekday
-        } else {
+        let Some(weekday) = maybe_weekday else {
             // Someone had a bad day and used the 3rd format. We don't care.
             return Ok(None);
         };
@@ -254,7 +252,7 @@ impl Page {
 
         debug!("end time {end}");
 
-        let date = *week_start + Duration::days(weekday);
+        let date = week_start + Duration::days(weekday);
 
         debug!("date {date}");
 
@@ -283,27 +281,27 @@ impl Page {
         };
 
         Ok(Some(Event {
-            title,
             date,
             start,
             end,
-            lecturers,
+            title,
             location,
+            lecturers,
         }))
     }
 }
 
 fn create_ics_base(key: &'_ str) -> ICalendar<'_> {
-    let mut cest = Daylight::new("19700329T020000", "+0100", "+0200");
-    cest.push(TzName::new("CEST"));
-    cest.push(RRule::new("FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"));
+    let mut cet_standard = ics::Standard::new("19701025T030000", "+0200", "+0100");
+    cet_standard.push(TzName::new("CET"));
+    cet_standard.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
 
-    let mut cet = ics::Standard::new("19701025T030000", "+0200", "+0100");
-    cet.push(TzName::new("CET"));
-    cet.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
+    let mut cest_daylight = Daylight::new("19700329T020000", "+0100", "+0200");
+    cest_daylight.push(TzName::new("CEST"));
+    cest_daylight.push(RRule::new("FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU"));
 
-    let mut timezone = TimeZone::daylight("Europe/Berlin", cest);
-    timezone.add_standard(cet);
+    let mut timezone = TimeZone::daylight("Europe/Berlin", cest_daylight);
+    timezone.add_standard(cet_standard);
 
     let mut ics = ICalendar::new("2.0", key);
     ics.add_timezone(timezone);
