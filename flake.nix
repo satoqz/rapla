@@ -75,13 +75,7 @@
           docker-image = pkgs.dockerTools.buildLayeredImage {
             inherit name;
             tag = "latest";
-
-            contents = [
-              rapla-sync-static
-              pkgs.cacert
-            ];
-
-            config.Cmd = [ "rapla" ];
+            config.Cmd = [ "${rapla-sync-static}/bin/rapla" ];
             config.ExposedPorts."8080" = { };
           };
         in
