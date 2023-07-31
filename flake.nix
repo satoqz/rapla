@@ -1,7 +1,19 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-  outputs = { self, nixpkgs, ... }:
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, nixpkgs, fenix, naersk }:
     let
       inherit (nixpkgs) lib;
 
@@ -22,22 +34,42 @@
         inherit name;
         path = toString ./.;
       };
-
-      cargoLock.lockFile = ./Cargo.lock;
     in
     {
       packages = withPackages (pkgs:
         let
-          rapla-sync = pkgs.rustPlatform.buildRustPackage {
-            inherit name version src cargoLock;
+          inherit (pkgs) system;
+          inherit (fenix.packages.${system}) combine stable targets;
+
+          rapla-sync = (pkgs.callPackage naersk {
+            cargo = stable.toolchain;
+            rustc = stable.toolchain;
+          }).buildPackage {
+            inherit name version src;
             buildInputs = lib.optionals pkgs.stdenv.isDarwin [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
           };
 
           rapla-sync-static =
-            pkgs.pkgsStatic.rustPlatform.buildRustPackage {
-              inherit name version src cargoLock;
+            let
+              target =
+                if system == "aarch64-linux" then "aarch64-unknown-linux-musl"
+                else if system == "x86_64-linux" then "x86_64-unknown-linux-musl"
+                else throw "unreachable";
+
+              toolchain = combine ([
+                stable.rustc
+                stable.cargo
+                targets.${target}.stable.rust-std
+              ]);
+            in
+            (pkgs.callPackage naersk {
+              cargo = toolchain;
+              rustc = toolchain;
+            }).buildPackage {
+              inherit name version src;
+              CARGO_BUILD_TARGET = target;
             };
 
           docker-image = pkgs.dockerTools.buildLayeredImage {
@@ -64,14 +96,15 @@
         let
           inherit (pkgs) system;
           inherit (self.packages.${system}) rapla-sync;
+          inherit (fenix.packages.${system}) stable;
 
           mkCheck = name: nativeBuildInputs: checkPhase:
             rapla-sync.overrideAttrs (final: prev: {
               name = "check-${name}";
               dontBuild = true;
 
-              nativeBuildInputs =
-                prev.nativeBuildInputs ++ nativeBuildInputs;
+              nativeBuildInputs = nativeBuildInputs
+                ++ prev.nativeBuildInputs;
 
               inherit checkPhase;
 
@@ -81,11 +114,11 @@
             });
         in
         {
-          rustfmt = mkCheck "rustfmt" [ pkgs.rustfmt ] ''
+          rustfmt = mkCheck "rustfmt" [ stable.rustfmt ] ''
             cargo fmt --all -- --check
           '';
 
-          clippy = mkCheck "clippy" [ pkgs.clippy ] ''
+          clippy = mkCheck "clippy" [ stable.clippy ] ''
             cargo clippy
           '';
         });
@@ -95,15 +128,18 @@
       devShells = withPackages (pkgs:
         let
           inherit (pkgs) system;
+          inherit (fenix.packages.${system}) stable;
         in
         {
           default = pkgs.mkShell {
             inputsFrom = [ self.packages.${system}.default ]
               ++ builtins.attrValues self.checks.${system};
 
+            RUST_SRC_PATH = "${stable.rust-src}/lib/rustlib/rust/library";
+
             packages = [
               self.formatter.${system}
-              pkgs.rust-analyzer
+              stable.rust-analyzer
               pkgs.cargo-watch
               pkgs.flyctl
             ];
