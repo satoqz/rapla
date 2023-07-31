@@ -2,7 +2,7 @@ name: Build and push docker image
 
 on:
   push:
-    branches: ["flake"] # MAKE SURE TO REMOVE THIS
+    branches: [main]
 
 jobs:
   build:

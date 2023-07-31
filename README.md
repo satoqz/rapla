@@ -1,5 +1,7 @@
 ## `rapla-sync`
 
+[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+
 ### What is this?
 
 This is a web service that scrapes the rapla site of [DHBW Stuttgart](https://dhbw-stuttgart.de) hosted at [rapla.dhbw-stuttgart.de](https://rapla.dhbw-stuttgart.de).

@@ -105,6 +105,7 @@
               self.formatter.${system}
               pkgs.rust-analyzer
               pkgs.cargo-watch
+              pkgs.flyctl
             ];
           };
         });
