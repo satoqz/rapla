@@ -38,7 +38,7 @@
     {
       packages = withPackages (pkgs:
         let
-          inherit (pkgs) system;
+          inherit (pkgs) stdenv system;
           inherit (fenix.packages.${system}) combine stable targets;
 
           rapla-sync = (pkgs.callPackage naersk {
@@ -54,8 +54,8 @@
           rapla-sync-static =
             let
               target =
-                if system == "aarch64-linux" then "aarch64-unknown-linux-musl"
-                else if system == "x86_64-linux" then "x86_64-unknown-linux-musl"
+                if stdenv.isAarch64 then "aarch64-unknown-linux-musl"
+                else if stdenv.isx86_64 then "x86_64-unknown-linux-musl"
                 else throw "unreachable";
 
               toolchain = combine ([
