@@ -59,6 +59,19 @@
         buildMusl = builderFor muslToolchain;
 
         inherit (self'.packages) rapla-sync;
+
+        mkCheck = checkName: nativeBuildInputs: checkPhase:
+          rapla-sync.overrideAttrs (final: prev: {
+            name = "${name}-check-${checkName}";
+            nativeBuildInputs = nativeBuildInputs ++ prev.nativeBuildInputs;
+
+            dontBuild = true;
+            inherit checkPhase;
+
+            installPhase = ''
+              mkdir -p $out
+            '';
+          });
       in
       {
         packages = {
@@ -86,30 +99,15 @@
           };
         };
 
-        checks =
-          let
-            mkCheck = checkName: nativeBuildInputs: checkPhase:
-              rapla-sync.overrideAttrs (final: prev: {
-                name = "${name}-check-${checkName}";
-                nativeBuildInputs = nativeBuildInputs ++ prev.nativeBuildInputs;
+        checks = {
+          rustfmt = mkCheck "rustfmt" [ stable.rustfmt ] ''
+            cargo fmt --all -- --check
+          '';
 
-                dontBuild = true;
-                inherit checkPhase;
-
-                installPhase = ''
-                  mkdir -p $out
-                '';
-              });
-          in
-          {
-            rustfmt = mkCheck "rustfmt" [ stable.rustfmt ] ''
-              cargo fmt --all -- --check
-            '';
-
-            clippy = mkCheck "clippy" [ stable.clippy ] ''
-              cargo clippy
-            '';
-          };
+          clippy = mkCheck "clippy" [ stable.clippy ] ''
+            cargo clippy
+          '';
+        };
 
         formatter = pkgs.nixpkgs-fmt;
 
