@@ -2,6 +2,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    flake-parts.url = "github:hercules-ci/flake-parts";
+
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,101 +15,91 @@
     };
   };
 
-  outputs = { self, nixpkgs, fenix, naersk }:
-    let
-      inherit (nixpkgs) lib;
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+    systems = [
+      "aarch64-linux"
+      "aarch64-darwin"
+      "x86_64-linux"
+      "x86_64-darwin"
+    ];
 
-      systems = [
-        "aarch64-darwin"
-        "aarch64-linux"
-        "x86_64-darwin"
-        "x86_64-linux"
-      ];
+    perSystem = { self', inputs', system, lib, pkgs, ... }:
+      let
+        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+        inherit (cargoToml.package) name version;
 
-      withPackages = f: (lib.genAttrs systems)
-        (system: f nixpkgs.legacyPackages.${system});
+        src = builtins.path {
+          inherit name;
+          path = toString ./.;
+        };
 
-      name = "rapla-sync";
-      version = "0.1.1";
+        inherit (inputs'.fenix.packages) combine stable targets;
 
-      src = builtins.path {
-        inherit name;
-        path = toString ./.;
-      };
-    in
-    {
-      packages = withPackages (pkgs:
-        let
-          inherit (pkgs) stdenv system;
-          inherit (fenix.packages.${system}) combine stable targets;
+        defaultToolchain = stable.toolchain;
 
-          rapla-sync = (pkgs.callPackage naersk {
-            cargo = stable.toolchain;
-            rustc = stable.toolchain;
-          }).buildPackage {
+        muslTarget =
+          if pkgs.stdenv.isAarch64 then "aarch64-unknown-linux-musl"
+          else if pkgs.stdenv.isx86_64 then "x86_64-unknown-linux-musl"
+          else throw "unreachable";
+
+        muslToolchain = combine ([
+          stable.rustc
+          stable.cargo
+          targets.${muslTarget}.stable.rust-std
+        ]);
+
+        naersk = pkgs.callPackage inputs.naersk;
+
+        builderFor = toolchain: (naersk {
+          cargo = toolchain;
+          rustc = toolchain;
+        }).buildPackage;
+
+        buildDefault = builderFor defaultToolchain;
+        buildMusl = builderFor muslToolchain;
+
+        inherit (self'.packages) rapla-sync;
+
+        mkCheck = checkName: nativeBuildInputs: checkPhase:
+          rapla-sync.overrideAttrs (final: prev: {
+            name = "${name}-check-${checkName}";
+            nativeBuildInputs = nativeBuildInputs ++ prev.nativeBuildInputs;
+
+            dontBuild = true;
+            inherit checkPhase;
+
+            installPhase = ''
+              mkdir -p $out
+            '';
+          });
+      in
+      {
+        packages = {
+          default = rapla-sync;
+
+          rapla-sync = buildDefault {
             inherit name version src;
             buildInputs = lib.optionals pkgs.stdenv.isDarwin [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
           };
-
-          rapla-sync-static =
-            let
-              target =
-                if stdenv.isAarch64 then "aarch64-unknown-linux-musl"
-                else if stdenv.isx86_64 then "x86_64-unknown-linux-musl"
-                else throw "unreachable";
-
-              toolchain = combine ([
-                stable.rustc
-                stable.cargo
-                targets.${target}.stable.rust-std
-              ]);
-            in
-            (pkgs.callPackage naersk {
-              cargo = toolchain;
-              rustc = toolchain;
-            }).buildPackage {
-              inherit name version src;
-              CARGO_BUILD_TARGET = target;
-            };
+        } // lib.optionalAttrs pkgs.stdenv.isLinux {
+          rapla-sync-static = buildMusl {
+            inherit name version src;
+            CARGO_BUILD_TARGET = muslTarget;
+          };
 
           docker-image = pkgs.dockerTools.buildLayeredImage {
             inherit name;
             tag = "latest";
-            config.Cmd = [ "${rapla-sync-static}/bin/rapla" ];
             config.ExposedPorts."8080" = { };
+            config.Cmd = [
+              "${self'.packages.rapla-sync-static}/bin/rapla"
+            ];
           };
-        in
-        {
-          inherit rapla-sync;
-          default = rapla-sync;
-        } // lib.optionalAttrs pkgs.stdenv.isLinux {
-          inherit rapla-sync-static docker-image;
-        });
+        };
 
-      checks = withPackages (pkgs:
-        let
-          inherit (pkgs) system;
-          inherit (self.packages.${system}) rapla-sync;
-          inherit (fenix.packages.${system}) stable;
-
-          mkCheck = name: nativeBuildInputs: checkPhase:
-            rapla-sync.overrideAttrs (final: prev: {
-              name = "check-${name}";
-              dontBuild = true;
-
-              nativeBuildInputs = nativeBuildInputs
-                ++ prev.nativeBuildInputs;
-
-              inherit checkPhase;
-
-              installPhase = ''
-                mkdir -p $out
-              '';
-            });
-        in
-        {
+        checks = {
           rustfmt = mkCheck "rustfmt" [ stable.rustfmt ] ''
             cargo fmt --all -- --check
           '';
@@ -115,29 +107,22 @@
           clippy = mkCheck "clippy" [ stable.clippy ] ''
             cargo clippy
           '';
-        });
+        };
 
-      formatter = withPackages (pkgs: pkgs.nixpkgs-fmt);
+        formatter = pkgs.nixpkgs-fmt;
 
-      devShells = withPackages (pkgs:
-        let
-          inherit (pkgs) system;
-          inherit (fenix.packages.${system}) stable;
-        in
-        {
-          default = pkgs.mkShell {
-            inputsFrom = [ self.packages.${system}.default ]
-              ++ builtins.attrValues self.checks.${system};
+        devShells.default = pkgs.mkShell {
+          inputsFrom = [ rapla-sync ] ++ builtins.attrValues self'.checks;
 
-            RUST_SRC_PATH = "${stable.rust-src}/lib/rustlib/rust/library";
+          packages = [
+            self'.formatter
+            stable.rust-analyzer
+            pkgs.cargo-watch
+            pkgs.flyctl
+          ];
 
-            packages = [
-              self.formatter.${system}
-              stable.rust-analyzer
-              pkgs.cargo-watch
-              pkgs.flyctl
-            ];
-          };
-        });
-    };
+          RUST_SRC_PATH = "${stable.rust-src}/lib/rustlib/rust/library";
+        };
+      };
+  };
 }
