@@ -25,8 +25,10 @@
 
     perSystem = { self', inputs', system, lib, pkgs, ... }:
       let
+        name = "rapla-sync";
+
         cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-        inherit (cargoToml.package) name version;
+        inherit (cargoToml.package) version;
 
         src = builtins.path {
           inherit name;
