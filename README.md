@@ -1,7 +1,5 @@
 ## `rapla-sync`
 
-[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
-
 ### What is this?
 
 This is a web service that scrapes the rapla site of [DHBW Stuttgart](https://dhbw-stuttgart.de) hosted at [rapla.dhbw-stuttgart.de](https://rapla.dhbw-stuttgart.de).
@@ -22,7 +20,7 @@ https://{RAPLA_SYNC_INSTANCE}/{YOUR_RAPLA_KEY}
 
 I host a public instance on [fly.io](https://fly.io). It is available at https://rapla.fly.dev.
 
-To use it, simply add 
+To use it, simply add
 
 ```
 https://rapla.fly.dev/<YOUR_RAPLA_KEY>
