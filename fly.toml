@@ -2,9 +2,6 @@ app = "rapla"
 kill_timeout = 3
 primary_region = "ams"
 
-[build]
-image = "ghcr.io/satoqz/rapla-sync:latest"
-
 [[services]]
 protocol = "tcp"
 internal_port = 8080
