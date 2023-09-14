@@ -1,19 +1,15 @@
-FROM rust:alpine AS builder
+FROM golang:alpine AS builder
 
-RUN apk add --no-cache musl-dev
-
-ADD Cargo.toml .
-ADD Cargo.lock .
-ADD src ./src
-
-RUN cargo fetch --locked
-RUN cargo install --path .
+WORKDIR /root/build
+ADD . .
+RUN go build ./cmd/rapla-proxy
 
 
 FROM scratch AS runner
 
-COPY --from=builder /usr/local/cargo/bin/rapla /
+COPY --from=builder /root/build/rapla-proxy /bin/rapla-proxy
 
+ENV PATH /bin
 EXPOSE 8080
 
-CMD ["/rapla"]
+CMD ["rapla-proxy"]
