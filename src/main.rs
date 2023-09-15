@@ -7,11 +7,6 @@ use hyper::{
 
 use std::{convert::Infallible, env, net, process};
 
-#[cfg(feature = "bind-wildcard")]
-const IP: [u8; 4] = [0; 4];
-#[cfg(not(feature = "bind-wildcard"))]
-const IP: [u8; 4] = [127, 0, 0, 1];
-
 #[tokio::main]
 async fn main() {
     let Ok(port) = env::var("PORT").map_or_else(|_| Ok(8080), |port| port.parse::<u16>()) else {
@@ -19,7 +14,15 @@ async fn main() {
         process::exit(1);
     };
 
-    let addr = net::SocketAddr::from((IP, port));
+    let Ok(ip) = env::var("IP").map_or_else(
+        |_| Ok(net::IpAddr::V4(net::Ipv4Addr::from([127, 0, 0, 1]))),
+        |ip| ip.parse::<net::IpAddr>(),
+    ) else {
+        eprintln!("`IP` environment variable is invalid");
+        process::exit(1);
+    };
+
+    let addr = net::SocketAddr::from((ip, port));
 
     let make_service =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
