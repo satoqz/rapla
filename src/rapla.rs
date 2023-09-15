@@ -14,6 +14,15 @@ macro_rules! selector {
     };
 }
 
+selector!(START_YEAR, "select[name=year] > option[selected]");
+selector!(WEEK_NUMBER, "th.week_number");
+selector!(WEEKS, "div.calendar > table.week_table > tbody");
+selector!(START_DATE, "tr > td.week_header > nobr");
+selector!(ROWS, "tr");
+selector!(COLUMNS, "td");
+selector!(RESOURCE, "span.resource");
+selector!(ANCHOR, "a");
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Event {
     pub date: NaiveDate,
@@ -72,15 +81,6 @@ pub fn ics_base<'a, S: Into<Cow<'a, str>>>(name: S) -> ICalendar<'a> {
 }
 
 pub fn extract_events<S: AsRef<str>>(html: S) -> Option<Vec<Event>> {
-    selector!(START_YEAR, "select[name=year] > option[selected]");
-    selector!(WEEK_NUMBER, "th.week_number");
-    selector!(WEEKS, "div.calendar > table.week_table > tbody");
-    selector!(START_DATE, "tr > td.week_header > nobr");
-    selector!(ROWS, "tr");
-    selector!(COLUMNS, "td");
-    selector!(RESOURCE, "span.resource");
-    selector!(ANCHOR, "a");
-
     let html = Html::parse_document(html.as_ref());
     let mut start_year = html
         .select(&START_YEAR)
@@ -90,7 +90,7 @@ pub fn extract_events<S: AsRef<str>>(html: S) -> Option<Vec<Event>> {
         .ok()?;
 
     let mut events = Vec::new();
-    for week in html.select(&WEEKS) {
+    for (idx, week) in html.select(&WEEKS).enumerate() {
         let week_number = week
             .select(&WEEK_NUMBER)
             .next()?
@@ -100,7 +100,7 @@ pub fn extract_events<S: AsRef<str>>(html: S) -> Option<Vec<Event>> {
             .parse::<usize>()
             .ok()?;
 
-        if week_number == 1 {
+        if week_number == 1 && idx > 0 {
             start_year += 1;
         }
 

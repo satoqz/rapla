@@ -48,12 +48,16 @@ async fn get_ics<'a>(url: String) -> Option<ics::ICalendar<'a>> {
 }
 
 async fn handle_request(req: Request<Body>) -> Result<Response<String>, Infallible> {
-    let path_and_query = req.uri().path_and_query().unwrap();
-    let Some(ics) = get_ics(format!("https://rapla.dhbw.de/{path_and_query}")).await else {
-        return Ok(Response::builder().body("error".into()).unwrap());
+    let builder = Response::builder();
+
+    let path = req.uri().path_and_query().unwrap();
+    let url = format!("https://rapla.dhbw.de/{path}");
+
+    let Some(ics) = get_ics(url).await else {
+        return Ok(builder.status(500).body("no events".into()).unwrap());
     };
 
-    Ok(Response::builder()
+    Ok(builder
         .header("Content-Type", "text/calendar")
         .body(ics.to_string())
         .unwrap())
