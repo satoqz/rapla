@@ -2,19 +2,10 @@ FROM rust:alpine AS builder
 
 RUN apk add --no-cache musl-dev
 
-WORKDIR /root/deps-build
-
-RUN cargo init
-ADD Cargo.toml Cargo.lock ./
-
-RUN cargo fetch --locked
-RUN cargo build --locked --release
-
-WORKDIR /root/build
-
 ADD Cargo.toml Cargo.lock ./
 ADD src ./src
 
+RUN cargo fetch --locked
 RUN cargo install --locked --path .
 
 

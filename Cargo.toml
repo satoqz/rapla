@@ -4,11 +4,7 @@ version = "0.2.0"
 edition = "2021"
 
 [lib]
-path = "src/lib.rs"
-
-[[bin]]
-name = "rapla-proxy"
-path = "src/main.rs"
+path = "src/rapla.rs"
 
 [dependencies]
 chrono = { version = "0.4.30", features = ["std"], default-features = false }

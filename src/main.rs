@@ -1,3 +1,5 @@
+mod rapla;
+
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
@@ -29,8 +31,8 @@ async fn get_ics<'a>(url: String) -> Option<ics::ICalendar<'a>> {
     let res = reqwest::get(&url).await.ok()?;
     let html = res.text().await.ok()?;
 
-    let mut ics = rapla_proxy::ics_base(url);
-    for event in rapla_proxy::extract_html(html)? {
+    let mut ics = rapla::ics_base(url);
+    for event in rapla::extract_events(html)? {
         ics.add_event(event.into());
     }
 
