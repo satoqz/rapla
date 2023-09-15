@@ -6,7 +6,7 @@ ADD Cargo.toml Cargo.lock ./
 ADD src ./src
 
 RUN cargo fetch --locked
-RUN cargo install --locked --path .
+RUN cargo install --locked --features bind-wildcard --path .
 
 
 FROM scratch AS runner

@@ -7,6 +7,11 @@ use hyper::{
 
 use std::{convert::Infallible, env, net, process};
 
+#[cfg(feature = "bind-wildcard")]
+const IP: [u8; 4] = [0; 4];
+#[cfg(not(feature = "bind-wildcard"))]
+const IP: [u8; 4] = [127, 0, 0, 1];
+
 #[tokio::main]
 async fn main() {
     let Ok(port) = env::var("PORT").map_or_else(|_| Ok(8080), |port| port.parse::<u16>()) else {
@@ -14,7 +19,7 @@ async fn main() {
         process::exit(1);
     };
 
-    let addr = net::SocketAddr::from(([127, 0, 0, 1], port));
+    let addr = net::SocketAddr::from((IP, port));
 
     let make_service =
         make_service_fn(|_conn| async { Ok::<_, Infallible>(service_fn(handle_request)) });
