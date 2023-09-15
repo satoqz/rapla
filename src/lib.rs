@@ -179,7 +179,7 @@ fn extract_event(element: ElementRef, date: NaiveDate) -> Result<Event> {
     let start = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
     let end = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
 
-    let title = details_split.next().context("wahh")?.to_owned();
+    let title = details_split.next().context("wahh")?.replace("&amp;", "&");
 
     let location = element
         .select(&RESOURCE)
