@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use anyhow::{Context, Result};
 use chrono::{Duration, NaiveDate, NaiveTime};
 use ics::{
     properties::{DtEnd, DtStart, Location, RRule, Summary, TzName},
@@ -81,27 +80,26 @@ pub fn ics_base<'a, S: Into<Cow<'a, str>>>(name: S) -> ICalendar<'a> {
     ics
 }
 
-pub fn extract_html<S: AsRef<str>>(html: S) -> Result<Vec<Event>> {
+pub fn extract_html<S: AsRef<str>>(html: S) -> Option<Vec<Event>> {
     let html = Html::parse_document(html.as_ref());
     let mut events = Vec::new();
 
     let mut year = html
         .select(&START_YEAR)
-        .next()
-        .context("ahh")?
+        .next()?
         .inner_html()
-        .parse::<i32>()?;
+        .parse::<i32>()
+        .ok()?;
 
     for week in html.select(&WEEKS) {
         let week_number = week
             .select(&WEEK_NUMBER)
-            .next()
-            .context("ahh")?
+            .next()?
             .inner_html()
             .split(' ')
-            .nth(1)
-            .context("ahh")?
-            .parse::<usize>()?;
+            .nth(1)?
+            .parse::<usize>()
+            .ok()?;
 
         if week_number == 1 {
             year += 1;
@@ -110,34 +108,28 @@ pub fn extract_html<S: AsRef<str>>(html: S) -> Result<Vec<Event>> {
         events.append(&mut extract_week(week, year)?);
     }
 
-    Ok(events)
+    Some(events)
 }
 
-fn extract_week(element: ElementRef, start_year: i32) -> Result<Vec<Event>> {
+fn extract_week(element: ElementRef, start_year: i32) -> Option<Vec<Event>> {
     let mut events = Vec::new();
 
-    let start_date_raw = element
-        .select(&START_DATE)
-        .next()
-        .context("ahh")?
-        .inner_html();
+    let start_date_raw = element.select(&START_DATE).next()?.inner_html();
 
     let mut day_month = start_date_raw
         .split(' ')
-        .nth(1)
-        .context("ahh")?
+        .nth(1)?
         .trim_end_matches('.')
-        .split('.')
-        .into_iter();
+        .split('.');
 
-    let start_day = day_month.next().context("ahh")?.parse::<u32>()?;
-    let start_month = day_month.next().context("ahh")?.parse::<u32>()?;
+    let start_day = day_month.next()?.parse::<u32>().ok()?;
+    let start_month = day_month.next()?.parse::<u32>().ok()?;
 
     for row in element.select(&ROWS).skip(1) {
         events.append(&mut extract_row(row, start_year, start_month, start_day)?);
     }
 
-    Ok(events)
+    Some(events)
 }
 
 fn extract_row(
@@ -145,14 +137,14 @@ fn extract_row(
     start_year: i32,
     start_month: u32,
     start_day: u32,
-) -> Result<Vec<Event>> {
+) -> Option<Vec<Event>> {
     let mut events = Vec::new();
 
-    let monday = NaiveDate::from_ymd_opt(start_year, start_month, start_day).context("wahh")?;
+    let monday = NaiveDate::from_ymd_opt(start_year, start_month, start_day)?;
     let mut day_index = 0;
 
     for column in element.select(&COLUMNS) {
-        let class = column.value().classes().next().context("wahh")?;
+        let class = column.value().classes().next()?;
 
         if class.starts_with("week_separatorcell") {
             day_index += 1;
@@ -166,27 +158,27 @@ fn extract_row(
         events.push(extract_event(column, date)?);
     }
 
-    Ok(events)
+    Some(events)
 }
 
-fn extract_event(element: ElementRef, date: NaiveDate) -> Result<Event> {
-    let details = element.select(&ANCHOR).next().context("wahh")?.inner_html();
+fn extract_event(element: ElementRef, date: NaiveDate) -> Option<Event> {
+    let details = element.select(&ANCHOR).next()?.inner_html();
     let mut details_split = details.split("<br>");
 
-    let times_raw = details_split.next().context("wahh")?;
+    let times_raw = details_split.next()?;
     let mut times_raw_split = times_raw.split("&nbsp;-");
 
-    let start = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
-    let end = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
+    let start = NaiveTime::parse_from_str(times_raw_split.next()?, "%H:%M").ok()?;
+    let end = NaiveTime::parse_from_str(times_raw_split.next()?, "%H:%M").ok()?;
 
-    let title = details_split.next().context("wahh")?.replace("&amp;", "&");
+    let title = details_split.next()?.replace("&amp;", "&");
 
     let location = element
         .select(&RESOURCE)
         .nth(1)
         .map(|location| location.inner_html());
 
-    Ok(Event {
+    Some(Event {
         date,
         start,
         end,

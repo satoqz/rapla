@@ -1,6 +1,3 @@
-use rapla_proxy::*;
-
-use anyhow::Result;
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
@@ -28,24 +25,22 @@ async fn main() {
     }
 }
 
-async fn get_ics<'a>(url: String) -> Result<ics::ICalendar<'a>> {
-    let res = reqwest::get(&url).await?;
-    let html = res.text().await?;
+async fn get_ics<'a>(url: String) -> Option<ics::ICalendar<'a>> {
+    let res = reqwest::get(&url).await.ok()?;
+    let html = res.text().await.ok()?;
 
-    let mut ics = ics_base(url);
-    for event in extract_html(html)? {
+    let mut ics = rapla_proxy::ics_base(url);
+    for event in rapla_proxy::extract_html(html)? {
         ics.add_event(event.into());
     }
 
-    Ok(ics)
+    Some(ics)
 }
 
 async fn handle_request(req: Request<Body>) -> Result<Response<String>, Infallible> {
     let path_and_query = req.uri().path_and_query().unwrap();
-
-    let ics = match get_ics(format!("https://rapla.dhbw.de/{path_and_query}")).await {
-        Ok(ics) => ics,
-        Err(err) => return Ok(Response::builder().body(format!("Error: {err}")).unwrap()),
+    let Some(ics) = get_ics(format!("https://rapla.dhbw.de/{path_and_query}")).await else {
+        return Ok(Response::builder().body("error".into()).unwrap());
     };
 
     Ok(Response::builder()

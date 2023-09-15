@@ -11,7 +11,6 @@ name = "rapla-proxy"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.75"
 chrono = { version = "0.4.30", features = ["std"], default-features = false }
 hyper = { version = "0.14.27", features = ["h2", "server"] }
 ics = "0.5.8"
