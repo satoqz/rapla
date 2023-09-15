@@ -21,18 +21,20 @@ selector!(WEEKS, "div.calendar > table.week_table > tbody");
 selector!(START_DATE, "tr > td.week_header > nobr");
 selector!(ROWS, "tr");
 selector!(COLUMNS, "td");
+selector!(RESOURCE, "span.resource");
+selector!(ANCHOR, "a");
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Event<'a> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Event {
     pub date: NaiveDate,
     pub start: NaiveTime,
     pub end: NaiveTime,
-    pub title: &'a str,
-    pub location: &'a str,
+    pub title: String,
+    pub location: Option<String>,
 }
 
-impl<'a> From<Event<'a>> for ics::Event<'a> {
-    fn from(event: Event<'a>) -> ics::Event<'a> {
+impl<'a> From<Event> for ics::Event<'a> {
+    fn from(event: Event) -> ics::Event<'a> {
         let start = format!(
             "{}T{}00",
             event.date.format("%Y%m%d"),
@@ -52,7 +54,10 @@ impl<'a> From<Event<'a>> for ics::Event<'a> {
         ics_event.push(DtStart::new(start));
         ics_event.push(DtEnd::new(end));
         ics_event.push(Summary::new(event.title));
-        ics_event.push(Location::new(event.location));
+
+        if let Some(location) = event.location {
+            ics_event.push(Location::new(location));
+        }
 
         ics_event
     }
@@ -76,7 +81,7 @@ pub fn ics_base<'a, S: Into<Cow<'a, str>>>(name: S) -> ICalendar<'a> {
     ics
 }
 
-pub fn extract_html<'a, S: AsRef<str>>(html: S) -> Result<Vec<Event<'a>>> {
+pub fn extract_html<S: AsRef<str>>(html: S) -> Result<Vec<Event>> {
     let html = Html::parse_document(html.as_ref());
     let mut events = Vec::new();
 
@@ -108,7 +113,7 @@ pub fn extract_html<'a, S: AsRef<str>>(html: S) -> Result<Vec<Event<'a>>> {
     Ok(events)
 }
 
-fn extract_week<'a>(element: ElementRef, start_year: i32) -> Result<Vec<Event<'a>>> {
+fn extract_week(element: ElementRef, start_year: i32) -> Result<Vec<Event>> {
     let mut events = Vec::new();
 
     let start_date_raw = element
@@ -135,12 +140,12 @@ fn extract_week<'a>(element: ElementRef, start_year: i32) -> Result<Vec<Event<'a
     Ok(events)
 }
 
-fn extract_row<'a>(
+fn extract_row(
     element: ElementRef,
     start_year: i32,
     start_month: u32,
     start_day: u32,
-) -> Result<Vec<Event<'a>>> {
+) -> Result<Vec<Event>> {
     let mut events = Vec::new();
 
     let monday = NaiveDate::from_ymd_opt(start_year, start_month, start_day).context("wahh")?;
@@ -158,18 +163,34 @@ fn extract_row<'a>(
         }
 
         let date = monday + Duration::days(day_index);
-        events.push(extract_event(column, date)?)
+        events.push(extract_event(column, date)?);
     }
 
     Ok(events)
 }
 
-fn extract_event<'a>(element: ElementRef, date: NaiveDate) -> Result<Event<'a>> {
+fn extract_event(element: ElementRef, date: NaiveDate) -> Result<Event> {
+    let details = element.select(&ANCHOR).next().context("wahh")?.inner_html();
+    let mut details_split = details.split("<br>");
+
+    let times_raw = details_split.next().context("wahh")?;
+    let mut times_raw_split = times_raw.split("&nbsp;-");
+
+    let start = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
+    let end = NaiveTime::parse_from_str(times_raw_split.next().context("wahh")?, "%H:%M")?;
+
+    let title = details_split.next().context("wahh")?.to_owned();
+
+    let location = element
+        .select(&RESOURCE)
+        .nth(1)
+        .map(|location| location.inner_html());
+
     Ok(Event {
-        date: date,
-        start: NaiveTime::from_hms_opt(10, 10, 10).unwrap(),
-        end: NaiveTime::from_hms_opt(11, 11, 11).unwrap(),
-        title: "woo",
-        location: "woo",
+        date,
+        start,
+        end,
+        title,
+        location,
     })
 }
