@@ -50,8 +50,24 @@ async fn get_ics<'a>(url: String) -> Option<ics::ICalendar<'a>> {
 async fn handle_request(req: Request<Body>) -> Result<Response<String>, Infallible> {
     let builder = Response::builder();
 
-    let path = req.uri().path_and_query().unwrap();
-    let url = format!("https://rapla.dhbw.de/{path}");
+    let query_pairs =
+        form_urlencoded::parse(req.uri().query().unwrap_or("").as_bytes()).collect::<Vec<_>>();
+
+    let Some((_, key)) = query_pairs.iter().find(|pair| pair.0 == "key") else {
+        return Ok(builder
+            .status(400)
+            .body("missing `key` query parameter".into())
+            .unwrap());
+    };
+
+    let Some((_, salt)) = query_pairs.iter().find(|pair| pair.0 == "salt") else {
+        return Ok(builder
+            .status(400)
+            .body("missing `salt` query parameter".into())
+            .unwrap());
+    };
+
+    let url = format!("https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&pages=20");
 
     let Some(ics) = get_ics(url).await else {
         return Ok(builder.status(500).body("no events".into()).unwrap());

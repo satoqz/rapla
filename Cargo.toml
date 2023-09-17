@@ -8,6 +8,7 @@ path = "src/rapla.rs"
 
 [dependencies]
 chrono = { version = "0.4.30", features = ["std"], default-features = false }
+form_urlencoded = "1.2.0"
 hyper = { version = "0.14.27", features = ["h2", "server"] }
 ics = "0.5.8"
 once_cell = "1.18.0"

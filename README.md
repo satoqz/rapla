@@ -12,17 +12,10 @@ To get started synchronizing your schedule to a calendar provider of your choice
 
 1. Get your Rapla URL ready.
    This should be a very long URL with `rapla.dhbw.de` as its host, provided to you by DHBW.
-   The proxy will mirror exactly the events that are shown under this URL.
 
 2. Replace the `dhbw.de` part of the URL with `satoqz.net`.
 
-3. Remove all query parameters from the URL that indicate a specific date, i.e. `&day=...`, `&month=...` and `&year=...`.
-   While this is optional, this way the returned Rapla page will always start with the current week, continuously progressing through time.
-
-4. Ensure that the URL has the `&pages=...` query parameter set to a large value, e.g. `&pages=20`.
-   This is also optional and ensures that the returned iCalendar file includes several weeks of your schedule.
-
-5. Paste the resulting URL into the "New calendar subscription" field of your calendar provider. The name of this feature varies based on your provider.
+3. Paste the resulting URL into the "New calendar subscription" field of your calendar provider. The name of this feature varies based on your provider.
 
 ## Service Configuration
 
