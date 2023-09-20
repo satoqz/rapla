@@ -67,7 +67,8 @@ async fn handle_request(req: Request<Body>) -> Result<Response<String>, Infallib
             .unwrap());
     };
 
-    let url = format!("https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&pages=20");
+    let url =
+        format!("https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&pages=20&today=Heute");
 
     let Some(ics) = get_ics(url).await else {
         return Ok(builder.status(500).body("no events".into()).unwrap());
