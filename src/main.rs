@@ -1,5 +1,6 @@
 mod rapla;
 
+use chrono::{Datelike, Duration, Utc};
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
@@ -67,8 +68,11 @@ async fn handle_request(req: Request<Body>) -> Result<Response<String>, Infallib
             .unwrap());
     };
 
-    let url =
-        format!("https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&pages=20&today=Heute");
+    let year_ago = Utc::now() - Duration::days(365);
+    let url = format!(
+        "https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&day={}&month={}&year={}&pages=104",
+        year_ago.day(), year_ago.month(), year_ago.year()
+    );
 
     let Some(ics) = get_ics(url).await else {
         return Ok(builder.status(500).body("no events".into()).unwrap());
