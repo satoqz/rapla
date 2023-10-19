@@ -1,8 +1,7 @@
-use chrono::{Duration, NaiveDate, NaiveTime};
+use chrono::{Duration, NaiveDate, NaiveTime, Timelike};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
 
-#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize, Serializer};
 
 #[cfg(feature = "ics")]
@@ -43,24 +42,18 @@ impl ToHTML for Html {
     }
 }
 
-#[cfg(feature = "serde")]
 fn serialize_naive_time<S: Serializer>(time: &NaiveTime, serializer: S) -> Result<S::Ok, S::Error> {
-    use chrono::Timelike;
     let formatted_time = format!("{:02}:{:02}", time.hour(), time.minute());
     serializer.serialize_str(&formatted_time)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg(feature = "serde")]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Calendar {
     pub name: String,
     pub events: Vec<Event>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg(feature = "serde")]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Event {
     pub date: NaiveDate,
     #[serde(serialize_with = "serialize_naive_time")]
