@@ -26,22 +26,6 @@ selector!(COLUMNS, "td");
 selector!(RESOURCE, "span.resource");
 selector!(ANCHOR, "a");
 
-pub trait ToHTML {
-    fn to_html(self) -> Html;
-}
-
-impl ToHTML for &str {
-    fn to_html(self) -> Html {
-        Html::parse_document(self)
-    }
-}
-
-impl ToHTML for Html {
-    fn to_html(self) -> Html {
-        self
-    }
-}
-
 fn serialize_naive_time<S: Serializer>(time: &NaiveTime, serializer: S) -> Result<S::Ok, S::Error> {
     let formatted_time = format!("{:02}:{:02}", time.hour(), time.minute());
     serializer.serialize_str(&formatted_time)
@@ -65,9 +49,8 @@ pub struct Event {
 }
 
 impl Calendar {
-    pub fn from_html(html: impl ToHTML) -> Option<Self> {
-        let html = html.to_html();
-
+    pub fn from_html<S: AsRef<str>>(html: S) -> Option<Self> {
+        let html = Html::parse_document(html.as_ref());
         let name = html.select(&TITLE).next()?.inner_html().trim().to_string();
 
         let mut start_year = html
