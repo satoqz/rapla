@@ -99,7 +99,7 @@ async fn handle_request(
                 cache
                     .lock()
                     .await
-                    .insert(url, (now + Duration::hours(1), calendar.clone()));
+                    .insert(url, (now + Duration::minutes(10), calendar.clone()));
                 calendar
             }
             None => return Ok(builder.status(500).body("no events".into()).unwrap()),
