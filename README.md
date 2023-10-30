@@ -20,7 +20,7 @@ To get started synchronizing your schedule to a calendar provider of your choice
 1. Get your Rapla URL ready.
    This should be a very long URL with `rapla.dhbw.de` as its host, provided to you by DHBW.
 
-2. Replace the `dhbw.de` part of the URL with `satoqz.net`.
+2. Replace the `dhbw.de` part of the URL with `satoqz.net`, such that it becomes `rapla.satoqz.net`.
 
 3. Paste the resulting URL into the "New calendar subscription" field of your calendar provider. The name of this feature varies based on your provider.
 
