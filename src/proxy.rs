@@ -103,11 +103,14 @@ async fn handle_request<'a>(
 async fn fetch_calendar<'a>(url: String, cache: Cache<'a>) -> Option<Arc<Calendar>> {
     let now = Utc::now();
 
-    if let Some((ttl, calendar)) = cache.lock().await.get(&url) {
-        if *ttl > now {
-            return Some(Arc::clone(calendar));
-        } else {
-            cache.lock().await.remove(&url);
+    {
+        let mut cache = cache.lock().await;
+        if let Some((ttl, calendar)) = cache.get(&url) {
+            if *ttl > now {
+                return Some(Arc::clone(calendar));
+            } else {
+                cache.remove(&url);
+            }
         }
     }
 
