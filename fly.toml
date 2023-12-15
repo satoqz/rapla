@@ -1,5 +1,5 @@
 app = "rapla"
-primary_region = "ams"
+primary_region = "arn"
 
 [[services]]
 protocol = "tcp"
