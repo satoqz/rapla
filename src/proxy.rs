@@ -25,14 +25,14 @@ async fn main() {
         process::exit(1);
     };
 
-        let cache = Arc::new(Mutex::new(HashMap::new()));
+    let cache = Arc::new(Mutex::new(HashMap::new()));
 
     let make_service = make_service_fn(|_conn| {
         let cache_clone = Arc::clone(&cache);
         async move {
-        Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
+            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
                 handle_request(req, Arc::clone(&cache_clone))
-        }))
+            }))
         }
     });
 
@@ -45,15 +45,11 @@ async fn main() {
     }
 }
 
-async fn fetch_calendar(url: &str) -> Option<Calendar> {
-    let res = reqwest::get(url).await.ok()?;
-    let html = res.text().await.ok()?;
-    Calendar::from_html(html.as_str())
-}
+type Cache<'a> = Arc<Mutex<HashMap<String, (DateTime<Utc>, Arc<Calendar>)>>>;
 
-async fn handle_request(
+async fn handle_request<'a>(
     req: Request<Body>,
-    cache: Arc<Mutex<HashMap<String, (DateTime<Utc>, Calendar)>>>,
+    cache: Cache<'a>,
 ) -> Result<Response<String>, Infallible> {
     let builder = Response::builder();
 
@@ -87,33 +83,14 @@ async fn handle_request(
         year_ago.day(), year_ago.month(), year_ago.year()
     );
 
-    let cached_calendar = match cache.lock().await.get(&url) {
-        Some((expiry_time, _)) if *expiry_time < now => {
-            cache.lock().await.remove(&url);
-            None
-        }
-        Some((_, calendar)) => Some(calendar.clone()),
-        None => None,
-    };
-
-    let calendar = match cached_calendar {
-        Some(calendar) => calendar,
-        None => match fetch_calendar(url.as_str()).await {
-            Some(calendar) => {
-                cache
-                    .lock()
-                    .await
-                    .insert(url, (now + Duration::minutes(10), calendar.clone()));
-                calendar
-            }
-            None => return Ok(builder.status(500).body("no events".into()).unwrap()),
-        },
+    let Some(calendar) = fetch_calendar(url, cache).await else {
+        return Ok(builder.status(500).body("no events".into()).unwrap());
     };
 
     Ok(if return_json {
         builder
             .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&calendar).unwrap())
+            .body(serde_json::to_string(calendar.as_ref()).unwrap())
             .unwrap()
     } else {
         builder
@@ -121,4 +98,26 @@ async fn handle_request(
             .body(calendar.to_ics().to_string())
             .unwrap()
     })
+}
+
+async fn fetch_calendar<'a>(url: String, cache: Cache<'a>) -> Option<Arc<Calendar>> {
+    let now = Utc::now();
+
+    if let Some((ttl, calendar)) = cache.lock().await.get(&url) {
+        if *ttl > now {
+            return Some(Arc::clone(calendar));
+        } else {
+            cache.lock().await.remove(&url);
+        }
+    }
+
+    let html = reqwest::get(&url).await.ok()?.text().await.ok()?;
+    let calendar = Arc::new(Calendar::from_html(html.as_str())?);
+
+    cache
+        .lock()
+        .await
+        .insert(url, (now + Duration::minutes(10), Arc::clone(&calendar)));
+
+    Some(calendar)
 }

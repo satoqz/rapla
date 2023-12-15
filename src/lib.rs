@@ -142,7 +142,7 @@ impl Event {
 
 #[cfg(feature = "ics")]
 impl Calendar {
-    pub fn to_ics<'a>(self) -> ics::ICalendar<'a> {
+    pub fn to_ics<'a>(&'a self) -> ics::ICalendar<'a> {
         let mut cet_standard = Standard::new("19701025T030000", "+0200", "+0100");
         cet_standard.push(TzName::new("CET"));
         cet_standard.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
@@ -154,10 +154,10 @@ impl Calendar {
         let mut timezone = TimeZone::daylight("Europe/Berlin", cest_daylight);
         timezone.add_standard(cet_standard);
 
-        let mut icalendar = ics::ICalendar::new("2.0", self.name);
+        let mut icalendar = ics::ICalendar::new("2.0", &self.name);
         icalendar.add_timezone(timezone);
 
-        for event in self.events {
+        for event in &self.events {
             icalendar.add_event(event.to_ics())
         }
 
@@ -167,7 +167,7 @@ impl Calendar {
 
 #[cfg(feature = "ics")]
 impl Event {
-    pub fn to_ics<'a>(self) -> ics::Event<'a> {
+    pub fn to_ics<'a>(&'a self) -> ics::Event<'a> {
         let start = format!(
             "{}T{}00",
             self.date.format("%Y%m%d"),
@@ -186,9 +186,9 @@ impl Event {
 
         ics_event.push(DtStart::new(start));
         ics_event.push(DtEnd::new(end));
-        ics_event.push(Summary::new(self.title));
+        ics_event.push(Summary::new(&self.title));
 
-        if let Some(location) = self.location {
+        if let Some(location) = &self.location {
             ics_event.push(Location::new(location));
         }
 
