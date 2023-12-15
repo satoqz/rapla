@@ -25,11 +25,15 @@ async fn main() {
         process::exit(1);
     };
 
-    let make_service = make_service_fn(|_conn| async {
         let cache = Arc::new(Mutex::new(HashMap::new()));
+
+    let make_service = make_service_fn(|_conn| {
+        let cache_clone = Arc::clone(&cache);
+        async move {
         Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-            handle_request(req, Arc::clone(&cache))
+                handle_request(req, Arc::clone(&cache_clone))
         }))
+        }
     });
 
     let addr = net::SocketAddr::from((ip, port));
