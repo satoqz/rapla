@@ -1,4 +1,4 @@
-# `📆 rapla-proxy`
+# 📆 rapla-proxy
 
 - [Introduction](#introduction)
 - [Usage as Calendar Synchronizer](#usage-as-calendar-synchronizer)
@@ -74,7 +74,7 @@ To enable conversion of scraped calendars to the iCalendar format, include the `
 rapla = { git = "https://github.com/satoqz/rapla-proxy.git", default-features = false, features = ["ics"] }
 ```
 
-Below is a minimal example using `tokio` and `reqwest` showing how to download HTML from Rapla and then parse it into a `rapla::Calendar`:
+Below is a minimal example featuring `tokio` and `reqwest` that shows how to fetch some HTML from Rapla and parse it into a `rapla::Calendar`:
 
 ```rs
 const RAPLA_URL: &str = "...";
@@ -95,4 +95,4 @@ async fn main() {
 ```
 
 > **Note**
-> The `rapla-proxy` service transforms the query parameters the given Rapla URL such that it always returns events ranging from ± 1 year from the current time. The core `rapla` library can parse only the events that are actually included in the HTML that you pass and will not issue any further requests.
+> The `rapla-proxy` service transforms the query parameters of the given Rapla URL such that it always returns events ranging from ± 1 year from the current time. The core `rapla` library can parse only the events that are actually included in the HTML that you pass and will not issue any further requests.
