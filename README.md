@@ -28,7 +28,7 @@ To get started synchronizing your schedule to a calendar provider of your choice
 
 If you would like to receive the list of events as JSON rather than in the iCalendar format, you can add the `&json=true` query parameter to the Rapla URL. The resulting JSON response looks as follows:
 
-```json
+```jsonc
 {
   "events": [
     {
