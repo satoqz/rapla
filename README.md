@@ -94,5 +94,5 @@ async fn main() {
 }
 ```
 
-> **Note**
+> [!NOTE]
 > The `rapla-proxy` service transforms the query parameters of the given Rapla URL such that it always returns events ranging from ± 1 year from the current time. The core `rapla` library can parse only the events that are actually included in the HTML that you pass and will not issue any further requests.
