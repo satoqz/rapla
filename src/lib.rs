@@ -108,7 +108,7 @@ impl Calendar {
             }
         }
 
-        Some(Calendar { events, name })
+        Some(Calendar { name, events })
     }
 }
 
@@ -142,7 +142,7 @@ impl Event {
 
 #[cfg(feature = "ics")]
 impl Calendar {
-    pub fn to_ics<'a>(&'a self) -> ics::ICalendar<'a> {
+    pub fn to_ics(&self) -> ics::ICalendar<'_> {
         let mut cet_standard = Standard::new("19701025T030000", "+0200", "+0100");
         cet_standard.push(TzName::new("CET"));
         cet_standard.push(RRule::new("FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU"));
@@ -158,7 +158,7 @@ impl Calendar {
         icalendar.add_timezone(timezone);
 
         for event in &self.events {
-            icalendar.add_event(event.to_ics())
+            icalendar.add_event(event.to_ics());
         }
 
         icalendar
@@ -167,7 +167,7 @@ impl Calendar {
 
 #[cfg(feature = "ics")]
 impl Event {
-    pub fn to_ics<'a>(&'a self) -> ics::Event<'a> {
+    pub fn to_ics(&self) -> ics::Event<'_> {
         let start = format!(
             "{}T{}00",
             self.date.format("%Y%m%d"),

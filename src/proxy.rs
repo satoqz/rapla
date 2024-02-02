@@ -41,16 +41,13 @@ async fn main() {
     eprintln!("listening on http://{addr}");
 
     if let Err(err) = server.await {
-        eprintln!("server error: {}", err);
+        eprintln!("server error: {err}");
     }
 }
 
-type Cache<'a> = Arc<Mutex<HashMap<String, (DateTime<Utc>, Arc<Calendar>)>>>;
+type Cache = Arc<Mutex<HashMap<String, (DateTime<Utc>, Arc<Calendar>)>>>;
 
-async fn handle_request<'a>(
-    req: Request<Body>,
-    cache: Cache<'a>,
-) -> Result<Response<String>, Infallible> {
+async fn handle_request(req: Request<Body>, cache: Cache) -> Result<Response<String>, Infallible> {
     let builder = Response::builder();
 
     let query_pairs =
@@ -72,8 +69,7 @@ async fn handle_request<'a>(
 
     let return_json = query_pairs
         .iter()
-        .find(|pair| pair.0 == "json" && pair.1 == "true")
-        .is_some();
+        .any(|pair| pair.0 == "json" && pair.1 == "true");
 
     let now = Utc::now();
     let year_ago = now - Duration::days(365);
@@ -100,7 +96,7 @@ async fn handle_request<'a>(
     })
 }
 
-async fn fetch_calendar<'a>(url: String, cache: Cache<'a>) -> Option<Arc<Calendar>> {
+async fn fetch_calendar<'a>(url: String, cache: Cache) -> Option<Arc<Calendar>> {
     let now = Utc::now();
 
     {
@@ -108,9 +104,8 @@ async fn fetch_calendar<'a>(url: String, cache: Cache<'a>) -> Option<Arc<Calenda
         if let Some((ttl, calendar)) = cache.get(&url) {
             if *ttl > now {
                 return Some(Arc::clone(calendar));
-            } else {
-                cache.remove(&url);
             }
+            cache.remove(&url);
         }
     }
 
