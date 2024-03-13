@@ -11,20 +11,11 @@ use ics::{
 };
 
 macro_rules! selector {
-    ($name:ident, $query:expr) => {
-        static $name: Lazy<Selector> = Lazy::new(|| Selector::parse($query).unwrap());
-    };
+    ($query:expr) => {{
+        static SELECTOR: Lazy<Selector> = Lazy::new(|| Selector::parse($query).unwrap());
+        &SELECTOR
+    }};
 }
-
-selector!(TITLE, "title");
-selector!(START_YEAR, "select[name=year] > option[selected]");
-selector!(WEEK_NUMBER, "th.week_number");
-selector!(WEEKS, "div.calendar > table.week_table > tbody");
-selector!(START_DATE, "tr > td.week_header > nobr");
-selector!(ROWS, "tr");
-selector!(COLUMNS, "td");
-selector!(RESOURCE, "span.resource");
-selector!(ANCHOR, "a");
 
 fn serialize_naive_time<S: Serializer>(time: &NaiveTime, serializer: S) -> Result<S::Ok, S::Error> {
     let formatted_time = format!("{:02}:{:02}", time.hour(), time.minute());
@@ -51,10 +42,15 @@ pub struct Event {
 impl Calendar {
     pub fn from_html<S: AsRef<str>>(html: S) -> Option<Self> {
         let html = Html::parse_document(html.as_ref());
-        let name = html.select(&TITLE).next()?.inner_html().trim().to_string();
+        let name = html
+            .select(selector!("title"))
+            .next()?
+            .inner_html()
+            .trim()
+            .to_string();
 
         let mut start_year = html
-            .select(&START_YEAR)
+            .select(selector!("select[name=year] > option[selected]"))
             .next()?
             .inner_html()
             .parse::<i32>()
@@ -62,9 +58,12 @@ impl Calendar {
 
         let mut events = Vec::new();
 
-        for (idx, week) in html.select(&WEEKS).enumerate() {
+        for (idx, week) in html
+            .select(selector!("div.calendar > table.week_table > tbody"))
+            .enumerate()
+        {
             let week_number = week
-                .select(&WEEK_NUMBER)
+                .select(selector!("th.week_number"))
                 .next()?
                 .inner_html()
                 .split(' ')
@@ -76,7 +75,10 @@ impl Calendar {
                 start_year += 1;
             }
 
-            let start_date_raw = week.select(&START_DATE).next()?.inner_html();
+            let start_date_raw = week
+                .select(selector!("tr > td.week_header > nobr"))
+                .next()?
+                .inner_html();
 
             let mut day_month = start_date_raw
                 .split(' ')
@@ -87,11 +89,11 @@ impl Calendar {
             let start_day = day_month.next()?.parse::<u32>().ok()?;
             let start_month = day_month.next()?.parse::<u32>().ok()?;
 
-            for row in week.select(&ROWS).skip(1) {
+            for row in week.select(selector!("tr")).skip(1) {
                 let monday = NaiveDate::from_ymd_opt(start_year, start_month, start_day)?;
                 let mut day_index = 0;
 
-                for column in row.select(&COLUMNS) {
+                for column in row.select(selector!("td")) {
                     let class = column.value().classes().next()?;
 
                     if class.starts_with("week_separatorcell") {
@@ -114,7 +116,7 @@ impl Calendar {
 
 impl Event {
     fn from_element(element: ElementRef, date: NaiveDate) -> Option<Event> {
-        let details = element.select(&ANCHOR).next()?.inner_html();
+        let details = element.select(selector!("a")).next()?.inner_html();
         let mut details_split = details.split("<br>");
 
         let times_raw = details_split.next()?;
@@ -126,7 +128,7 @@ impl Event {
         let title = details_split.next()?.replace("&amp;", "&");
 
         let location = element
-            .select(&RESOURCE)
+            .select(selector!("span.resource"))
             .nth(1)
             .map(|location| location.inner_html());
 
