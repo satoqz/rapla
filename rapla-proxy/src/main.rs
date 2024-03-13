@@ -1,26 +1,24 @@
+use std::{collections::HashMap, convert::Infallible, env, net::SocketAddr, process, sync::Arc};
+
 use chrono::{DateTime, Datelike, Duration, Utc};
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
-use rapla_parser::Calendar;
 use tokio::sync::Mutex;
 
-use std::{collections::HashMap, convert::Infallible, env, net, process, sync::Arc};
+use rapla_parser::Calendar;
 
 #[tokio::main]
 async fn main() {
-    let Ok(port) = env::var("PORT").map_or_else(|_| Ok(8080), |port| port.parse::<u16>()) else {
-        eprintln!("`PORT` environment variable is invalid");
-        process::exit(1);
-    };
+    const RAPLA_PROXY_ADDR: &str = "RAPLA_PROXY_ADDR";
 
-    let Ok(ip) = env::var("IP").map_or_else(
-        |_| Ok(net::IpAddr::V4(net::Ipv4Addr::from([127, 0, 0, 1]))),
-        |ip| ip.parse::<net::IpAddr>(),
+    let Ok(addr) = env::var(RAPLA_PROXY_ADDR).map_or_else(
+        |_| Ok(SocketAddr::from(([127, 0, 0, 1], 8080))),
+        |value| value.parse(),
     ) else {
-        eprintln!("`IP` environment variable is invalid");
-        process::exit(1);
+        eprintln!("failed to parse `{RAPLA_PROXY_ADDR}` environment variable");
+        process::exit(1)
     };
 
     let cache = Arc::new(Mutex::new(HashMap::new()));
@@ -34,7 +32,6 @@ async fn main() {
         }
     });
 
-    let addr = net::SocketAddr::from((ip, port));
     let server = Server::bind(&addr).serve(make_service);
     eprintln!("listening on http://{addr}");
 

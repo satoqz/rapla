@@ -4,6 +4,7 @@
 - [Usage as Calendar Synchronizer](#usage-as-calendar-synchronizer)
 - [Usage as JSON API](#usage-as-json-api)
 - [Self-Hosting](#self-hosting)
+- [Configuration](#configuration)
 
 ## Introduction
 
@@ -51,7 +52,9 @@ If you would like to receive the list of events as JSON rather than in the iCale
 
 ## Self-Hosting
 
-The proxy service is configured using the `IP` and `PORT` environment variables,
-where `127.0.0.0` and `8080` are the defaults respectively.
+A [Dockerfile](./Dockerfile) is included for easy deployment.
 
-A [Dockerfile](./Dockerfile) is included to simplify container deployments. The container binds to the `0.0.0.0` address by default.
+## Configuration
+
+You can set the `RAPLA_PROXY_ADDR` environment variable to configure the socket address that `rapla-proxy` binds to.
+The default is `127.0.0.1:8080`.
