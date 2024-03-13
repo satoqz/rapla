@@ -4,7 +4,6 @@
 - [Usage as Calendar Synchronizer](#usage-as-calendar-synchronizer)
 - [Usage as JSON API](#usage-as-json-api)
 - [Self-Hosting](#self-hosting)
-- [Usage as Rust Library](#usage-as-rust-library)
 
 ## Introduction
 
@@ -56,43 +55,3 @@ The proxy service is configured using the `IP` and `PORT` environment variables,
 where `127.0.0.0` and `8080` are the defaults respectively.
 
 A [Dockerfile](./Dockerfile) is included to simplify container deployments. The container binds to the `0.0.0.0` address by default.
-
-## Usage as Rust Library
-
-The core scraping logic is exposed as a Rust library.
-To add it to your Rust project, include the following in your `Cargo.toml`:
-
-```toml
-[dependencies]
-rapla = { git = "https://github.com/satoqz/rapla-proxy.git", default-features = false }
-```
-
-To enable conversion of scraped calendars to the iCalendar format, include the `ics` feature:
-
-```toml
-[dependencies]
-rapla = { git = "https://github.com/satoqz/rapla-proxy.git", default-features = false, features = ["ics"] }
-```
-
-Below is a minimal example featuring `tokio` and `reqwest` that shows how to fetch some HTML from Rapla and parse it into a `rapla::Calendar`:
-
-```rs
-const RAPLA_URL: &str = "...";
-
-#[tokio::main]
-async fn main() {
-   let response = reqwest::get(RAPLA_URL).await.unwrap();
-   let html = response.text().await.unwrap();
-
-   let calendar = rapla::Calendar::from_html(html).unwrap();
-
-   for event in &calendar.events {
-      // ...
-   }
-
-   println!("{}", calendar.to_ics());
-}
-```
-
-> [!NOTE]
-> The `rapla-proxy` service transforms the query parameters of the given Rapla URL such that it always returns events ranging from ± 1 year from the current time. The core `rapla` library can parse only the events that are actually included in the HTML that you pass and will not issue any further requests.
