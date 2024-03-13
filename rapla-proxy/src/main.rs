@@ -1,11 +1,9 @@
-#![cfg(feature = "proxy")]
-
 use chrono::{DateTime, Datelike, Duration, Utc};
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
-use rapla::Calendar;
+use rapla_parser::Calendar;
 use tokio::sync::Mutex;
 
 use std::{collections::HashMap, convert::Infallible, env, net, process, sync::Arc};
@@ -72,7 +70,7 @@ async fn handle_request(req: Request<Body>, cache: Cache) -> Result<Response<Str
         .any(|pair| pair.0 == "json" && pair.1 == "true");
 
     let now = Utc::now();
-    let year_ago = now - Duration::days(365);
+    let year_ago = now - Duration::try_days(365).unwrap();
 
     let url = format!(
         "https://rapla.dhbw.de/rapla/calendar?key={key}&salt={salt}&day={}&month={}&year={}&pages=104",
@@ -112,10 +110,13 @@ async fn fetch_calendar<'a>(url: String, cache: Cache) -> Option<Arc<Calendar>> 
     let html = reqwest::get(&url).await.ok()?.text().await.ok()?;
     let calendar = Arc::new(Calendar::from_html(html.as_str())?);
 
-    cache
-        .lock()
-        .await
-        .insert(url, (now + Duration::minutes(10), Arc::clone(&calendar)));
+    cache.lock().await.insert(
+        url,
+        (
+            now + Duration::try_minutes(10).unwrap(),
+            Arc::clone(&calendar),
+        ),
+    );
 
     Some(calendar)
 }

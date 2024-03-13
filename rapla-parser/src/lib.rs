@@ -104,7 +104,7 @@ impl Calendar {
                         continue;
                     }
 
-                    let date = monday + Duration::days(day_index);
+                    let date = monday + Duration::try_days(day_index)?;
                     events.push(Event::from_element(column, date)?);
                 }
             }
