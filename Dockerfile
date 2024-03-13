@@ -5,10 +5,7 @@ FROM rust:alpine as builder
 RUN apk add --no-cache musl-dev
 
 WORKDIR /build
-
-COPY Cargo.toml Cargo.lock ./
-COPY rapla-parser rapla-parser
-COPY rapla-proxy rapla-proxy
+COPY . .
 
 RUN cargo fetch --locked
 RUN cargo install --locked --path rapla-proxy
