@@ -144,6 +144,7 @@ impl Event {
 
 #[cfg(feature = "ics")]
 impl Calendar {
+    #[must_use]
     pub fn to_ics(&self) -> ics::ICalendar<'_> {
         let mut cet_standard = Standard::new("19701025T030000", "+0200", "+0100");
         cet_standard.push(TzName::new("CET"));
@@ -169,6 +170,7 @@ impl Calendar {
 
 #[cfg(feature = "ics")]
 impl Event {
+    #[must_use]
     pub fn to_ics(&self) -> ics::Event<'_> {
         let start = format!(
             "{}T{}00",
