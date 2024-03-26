@@ -9,11 +9,11 @@ use axum::{
 };
 use chrono::{DateTime, Datelike, Duration, Utc};
 use serde::Deserialize;
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::{net::TcpListener, sync::RwLock};
 
 use rapla_parser::Calendar;
 
-type Cache = Arc<Mutex<HashMap<String, (DateTime<Utc>, Arc<Calendar>)>>>;
+type Cache = Arc<RwLock<HashMap<String, (DateTime<Utc>, Arc<Calendar>)>>>;
 
 const UPSTREAM: &str = "https://rapla.dhbw.de";
 const CALENDAR_PATH: &str = "/rapla/calendar";
@@ -33,7 +33,7 @@ async fn main() -> io::Result<()> {
     let router = Router::new()
         .route(CALENDAR_PATH, get(handle_calendar))
         .fallback(|| async { Redirect::permanent(env!("CARGO_PKG_REPOSITORY")) })
-        .with_state(Arc::new(Mutex::new(HashMap::new())));
+        .with_state(Arc::new(RwLock::new(HashMap::new())));
 
     let listener = TcpListener::bind(addr).await?;
     eprintln!("Listening at http://{addr}");
@@ -80,20 +80,17 @@ async fn fetch_calendar<'a>(key: String, salt: String, cache: Cache) -> Option<A
         year_ago.year()
     );
 
-    {
-        let mut cache = cache.lock().await;
-        if let Some((ttl, calendar)) = cache.get(&url) {
-            if *ttl > now {
-                return Some(Arc::clone(calendar));
-            }
-            cache.remove(&url);
+    if let Some((ttl, calendar)) = cache.read().await.get(&key) {
+        if *ttl > now {
+            return Some(Arc::clone(calendar));
         }
+        cache.write().await.remove(&url);
     }
 
     let html = reqwest::get(&url).await.ok()?.text().await.ok()?;
     let calendar = Arc::new(Calendar::from_html(html.as_str())?);
 
-    cache.lock().await.insert(
+    cache.write().await.insert(
         key,
         (
             now + Duration::try_minutes(10).unwrap(),
