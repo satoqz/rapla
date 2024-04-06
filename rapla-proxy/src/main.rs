@@ -11,7 +11,7 @@ use chrono::{Datelike, Duration, Utc};
 use serde::Deserialize;
 use tokio::{net::TcpListener, sync::RwLock, task, time};
 
-use rapla_parser::Calendar;
+use rapla_parser::{parse_calendar, Calendar};
 
 type Cache = Arc<RwLock<HashMap<String, Arc<Calendar>>>>;
 
@@ -85,7 +85,7 @@ async fn fetch_calendar<'a>(key: String, salt: String, cache: Cache) -> Option<A
     }
 
     let html = reqwest::get(&url).await.ok()?.text().await.ok()?;
-    let calendar = Arc::new(Calendar::from_html(html.as_str())?);
+    let calendar = Arc::new(parse_calendar(&html)?);
 
     cache
         .write()

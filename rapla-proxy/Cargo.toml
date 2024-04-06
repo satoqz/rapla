@@ -7,7 +7,7 @@ repository = "https://github.com/satoqz/rapla"
 [dependencies]
 axum = { version = "0.7.4", default-features = false, features = ["tokio", "http1", "http2", "json", "query"] }
 chrono = { workspace = true, features = ["now"] }
-rapla-parser = { path = "../rapla-parser", features = ["ics"] }
+rapla-parser = { path = "../rapla-parser", features = ["ics", "serde"] }
 reqwest = { version = "0.11.26", default-features = false, features = ["rustls-tls", "trust-dns"] }
 serde.workspace = true
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros", "signal"] }
