@@ -8,12 +8,12 @@ WORKDIR /build
 COPY . .
 
 RUN cargo fetch --locked
-RUN cargo install --locked --path rapla-proxy
+RUN cargo build --frozen --release --package rapla-proxy
 
 
 FROM scratch 
 
-COPY --from=builder /usr/local/cargo/bin/rapla-proxy /
+COPY --from=builder /build/target/release/rapla-proxy /
 ENV PATH /
 
 ENV RAPLA_PROXY_ADDR 0.0.0.0:8080
