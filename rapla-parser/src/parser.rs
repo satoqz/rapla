@@ -127,6 +127,6 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
         end,
         title,
         location,
-        organizer
+        organizer,
     })
 }
