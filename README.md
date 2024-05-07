@@ -26,29 +26,17 @@ To get started synchronizing your schedule to a calendar provider of your choice
 
 ## Usage as JSON API
 
-If you would like to receive the list of events as JSON rather than in the iCalendar format, you can add the `&json=true` query parameter to the Rapla URL. The resulting JSON response looks as follows:
+If you would like to receive the list of events as JSON rather than in the iCalendar format, you can add the `&json=true` query parameter to the Rapla URL.
+The resulting JSON response contains an array `"events"`, where each event is formatted as follows:
 
-```jsonc
-{
-  "events": [
-    {
-      "date": "2023-10-12",
-      "start": "08:30",
-      "end": "11:15",
-      "title": "Grundlagen Data Science",
-      "location": "C3.01 Vorlesung"
-    },
-    {
-      "date": "",
-      "start": "",
-      "end": "",
-      "title": "Wahlfach",
-      "location": null
-    }
-    // ...
-  ]
-}
-```
+| Field       | Format                        | Optional |
+| ----------- | ----------------------------- | -------- |
+| `date`      | `YYYY-MM-DD`                  | No       |
+| `start`     | `HH:MM`                       | No       |
+| `end`       | `HH:MM`                       | No       |
+| `title`     | String                        | No       |
+| `location`  | String                        | Yes      |
+| `organizer` | String, comma-separated names | Yes      |
 
 ## Self-Hosting
 
