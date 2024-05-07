@@ -1,5 +1,5 @@
 use ics::{
-    properties::{DtEnd, DtStart, Location, RRule, Summary, TzName},
+    properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
     Daylight, Standard, TimeZone,
 };
 
@@ -55,6 +55,10 @@ impl Event {
 
         if let Some(location) = &self.location {
             ics_event.push(Location::new(location));
+        }
+
+        if let Some(organizer) = &self.organizer {
+            ics_event.push(Organizer::new(organizer))
         }
 
         ics_event

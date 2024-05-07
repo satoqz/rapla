@@ -112,11 +112,17 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
         .nth(1)
         .map(|location| location.inner_html());
 
+    let organizer = element
+        .select(selector!("span.person"))
+        .nth(1)
+        .map(|organizer| organizer.inner_html());
+
     Some(Event {
         date,
         start,
         end,
         title,
         location,
+        organizer
     })
 }

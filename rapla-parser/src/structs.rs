@@ -18,4 +18,5 @@ pub struct Event {
     pub end: NaiveTime,
     pub title: String,
     pub location: Option<String>,
+    pub organizer: Option<String>
 }
