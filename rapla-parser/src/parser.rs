@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 use chrono::{Duration, NaiveDate, NaiveTime};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
@@ -112,10 +114,12 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
         .nth(1)
         .map(|location| location.inner_html());
 
-    let organizer = element
+    let persons = element
         .select(selector!("span.person"))
-        .nth(1)
-        .map(|organizer| organizer.inner_html());
+        .map(|person| person.inner_html())
+        .collect::<Vec<_>>();
+
+    let organizer = persons.is_empty().not().then(|| persons.join(", "));
 
     Some(Event {
         date,
