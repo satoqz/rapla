@@ -69,7 +69,7 @@ async fn handle_calendar(
         .into_response();
 }
 
-async fn fetch_calendar<'a>(key: String, salt: String, cache: Cache) -> Option<Arc<Calendar>> {
+async fn fetch_calendar(key: String, salt: String, cache: Cache) -> Option<Arc<Calendar>> {
     let now = Utc::now();
     let year_ago = now - Duration::try_days(365).unwrap();
 
