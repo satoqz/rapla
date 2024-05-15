@@ -30,7 +30,7 @@ async fn main() -> io::Result<()> {
     };
 
     let router = Router::new()
-        .route("/rapla/:calendar_type", get(handle_calendar))
+        .route("/rapla/:calendar_path", get(handle_calendar))
         .fallback(|| async { Redirect::permanent(env!("CARGO_PKG_REPOSITORY")) })
         .with_state(Arc::new(RwLock::new(HashMap::new())));
 
@@ -51,10 +51,10 @@ struct CalendarQuery {
 
 async fn handle_calendar(
     State(cache): State<Cache>,
-    Path(calendar_type): Path<String>,
+    Path(calendar_path): Path<String>,
     Query(CalendarQuery { key, salt, json }): Query<CalendarQuery>,
 ) -> Response {
-    let Some(calendar) = fetch_calendar_with_cache(calendar_type, key, salt, cache).await else {
+    let Some(calendar) = fetch_calendar_with_cache(calendar_path, key, salt, cache).await else {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to proxy calendar",
@@ -74,12 +74,12 @@ async fn handle_calendar(
 }
 
 async fn fetch_calendar_with_cache(
-    calendar_type: String,
+    calendar_path: String,
     key: String,
     salt: String,
     cache: Cache,
 ) -> Option<Arc<Calendar>> {
-    let cache_key = (calendar_type, key);
+    let cache_key = (calendar_path, key);
 
     if let Some(calendar) = cache.read().await.get(&cache_key) {
         return Some(Arc::clone(calendar));
@@ -102,7 +102,7 @@ async fn fetch_calendar_with_cache(
     Some(calendar)
 }
 
-fn generate_upstream_url(calendar_type: &str, key: &str, salt: &str) -> String {
+fn generate_upstream_url(calendar_path: &str, key: &str, salt: &str) -> String {
     // these don't need to be 100% accurate
     const WEEKS_TWO_YEARS: usize = 104;
     const DAYS_ONE_YEAR: i64 = 365;
@@ -111,7 +111,7 @@ fn generate_upstream_url(calendar_type: &str, key: &str, salt: &str) -> String {
     let year_ago = now - Duration::try_days(DAYS_ONE_YEAR).unwrap();
 
     format!(
-        "{UPSTREAM}/rapla/{calendar_type}?key={key}&salt={salt}&day={}&month={}&year={}&pages={WEEKS_TWO_YEARS}",
+        "{UPSTREAM}/rapla/{calendar_path}?key={key}&salt={salt}&day={}&month={}&year={}&pages={WEEKS_TWO_YEARS}",
         year_ago.day(),
         year_ago.month(),
         year_ago.year()
