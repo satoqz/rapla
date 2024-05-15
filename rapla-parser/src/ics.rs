@@ -58,7 +58,7 @@ impl Event {
         }
 
         if let Some(organizer) = &self.organizer {
-            ics_event.push(Organizer::new(organizer))
+            ics_event.push(Organizer::new(organizer));
         }
 
         ics_event
