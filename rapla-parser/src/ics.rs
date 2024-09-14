@@ -49,8 +49,14 @@ impl Event {
 
         let mut ics_event = ics::Event::new(id, start.clone());
 
-        ics_event.push(DtStart::new(start));
-        ics_event.push(DtEnd::new(end));
+        let mut dtstart = DtStart::new(start);
+        dtstart.add(TzIDParam::new("Europe/Berlin"));
+
+        let mut dtend = DtEnd::new(end);
+        dtend.add(TzIDParam::new("Europe/Berlin"));
+
+        ics_event.push(dtstart);
+        ics_event.push(dtend);
         ics_event.push(Summary::new(&self.title));
 
         if let Some(location) = &self.location {
