@@ -63,7 +63,11 @@ async fn handle_calendar(
     };
 
     if json {
-        return Json(calendar.as_ref()).into_response();
+        return (
+            [("content-type", "application/json; charset=utf-8")],
+            Json(calendar.as_ref()),
+        )
+            .into_response();
     }
 
     return (
