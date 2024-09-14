@@ -37,6 +37,7 @@ The resulting JSON response contains an array `"events"`, where each event is fo
 | `title`     | String                        | No       |
 | `location`  | String                        | Yes      |
 | `organizer` | String, comma-separated names | Yes      |
+| `description` | String, comma-separated resources | Yes      |
 
 ## Self-Hosting
 
