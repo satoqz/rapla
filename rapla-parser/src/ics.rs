@@ -1,6 +1,6 @@
 use ics::{
     parameters::TzIDParam,
-    properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
+    properties::{Description, DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
     Daylight, Standard, TimeZone,
 };
 
@@ -66,6 +66,10 @@ impl Event {
 
         if let Some(organizer) = &self.organizer {
             ics_event.push(Organizer::new(organizer));
+        }
+
+        if let Some(description) = &self.description {
+            ics_event.push(Description::new(description));
         }
 
         ics_event

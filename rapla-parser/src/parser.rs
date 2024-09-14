@@ -109,10 +109,12 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
 
     let title = details_split.next()?.replace("&amp;", "&");
 
-    let location = element
+    let resources = element
         .select(selector!("span.resource"))
-        .nth(1)
-        .map(|location| location.inner_html());
+        .map(|location| location.inner_html())
+        .collect::<Vec<_>>();
+
+    let location = resources.last().cloned();
 
     let persons = element
         .select(selector!("span.person"))
@@ -120,6 +122,7 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
         .collect::<Vec<_>>();
 
     let organizer = persons.is_empty().not().then(|| persons.join(", "));
+    let description = resources.is_empty().not().then(|| resources.join(", "));
 
     Some(Event {
         date,
@@ -128,5 +131,6 @@ fn parse_event_details(element: ElementRef, date: NaiveDate) -> Option<Event> {
         title,
         location,
         organizer,
+        description,
     })
 }
