@@ -21,4 +21,5 @@ pub struct Event {
     pub location: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub organizer: Option<String>,
+    pub description: Option<String>,
 }
