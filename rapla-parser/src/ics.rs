@@ -1,5 +1,6 @@
 use ics::{
     properties::{DtEnd, DtStart, Location, Organizer, RRule, Summary, TzName},
+    parameters::TzIDParam,
     Daylight, Standard, TimeZone,
 };
 
