@@ -29,14 +29,14 @@ To get started synchronizing your schedule to a calendar provider of your choice
 If you would like to receive the list of events as JSON rather than in the iCalendar format, you can add the `&json=true` query parameter to the Rapla URL.
 The resulting JSON response contains an array `"events"`, where each event is formatted as follows:
 
-| Field       | Format                        | Optional |
-| ----------- | ----------------------------- | -------- |
-| `date`      | `YYYY-MM-DD`                  | No       |
-| `start`     | `HH:MM`                       | No       |
-| `end`       | `HH:MM`                       | No       |
-| `title`     | String                        | No       |
-| `location`  | String                        | Yes      |
-| `organizer` | String, comma-separated names | Yes      |
+| Field         | Format                            | Optional |
+| ------------- | --------------------------------- | -------- |
+| `date`        | `YYYY-MM-DD`                      | No       |
+| `start`       | `HH:MM`                           | No       |
+| `end`         | `HH:MM`                           | No       |
+| `title`       | String                            | No       |
+| `location`    | String                            | Yes      |
+| `organizer`   | String, comma-separated names     | Yes      |
 | `description` | String, comma-separated resources | Yes      |
 
 ## Self-Hosting

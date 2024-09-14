@@ -70,7 +70,7 @@ impl Event {
 
         if let Some(description) = &self.description {
             ics_event.push(Description::new(description));
-        } 
+        }
 
         ics_event
     }
