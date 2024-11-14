@@ -9,7 +9,7 @@ use axum::{
 };
 use chrono::{Datelike, Duration, Utc};
 use serde::Deserialize;
-use tokio::{net::TcpListener, sync::RwLock, task, time};
+use tokio::{net::TcpListener, signal, sync::RwLock, task, time};
 
 use rapla_parser::{parse_calendar, Calendar};
 
@@ -36,7 +36,9 @@ async fn main() -> io::Result<()> {
 
     let listener = TcpListener::bind(addr).await?;
     eprintln!("Listening at http://{addr}");
-    axum::serve(listener, router).await
+    axum::serve(listener, router)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
 }
 
 #[derive(Deserialize)]
@@ -116,4 +118,28 @@ fn generate_upstream_url(calendar_path: &str, key: &str, salt: &str) -> String {
         year_ago.month(),
         year_ago.year()
     )
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
 }
