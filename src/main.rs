@@ -1,3 +1,7 @@
+mod ics;
+mod parser;
+mod structs;
+
 use std::{collections::HashMap, env, io, net::SocketAddr, process, sync::Arc};
 
 use axum::{
@@ -11,7 +15,7 @@ use chrono::{Datelike, Duration, Utc};
 use serde::Deserialize;
 use tokio::{net::TcpListener, signal, sync::RwLock, task, time};
 
-use rapla_parser::{parse_calendar, Calendar};
+use crate::{parser::parse_calendar, structs::Calendar};
 
 type Cache = Arc<RwLock<HashMap<(String, String), Arc<Calendar>>>>;
 

@@ -4,7 +4,7 @@ use ics::{
     Daylight, Standard, TimeZone,
 };
 
-use crate::{Calendar, Event};
+use crate::structs::{Calendar, Event};
 
 impl Calendar {
     #[must_use]

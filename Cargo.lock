@@ -168,7 +168,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
 dependencies = [
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -871,23 +870,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "rapla-parser"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "ics",
- "once_cell",
- "scraper",
-]
-
-[[package]]
 name = "rapla-proxy"
 version = "0.1.0"
 dependencies = [
  "axum",
  "chrono",
- "rapla-parser",
+ "ics",
+ "once_cell",
  "reqwest",
+ "scraper",
  "serde",
  "tokio",
 ]

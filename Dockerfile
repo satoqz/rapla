@@ -6,14 +6,14 @@ RUN cargo install cargo-chef
 
 FROM chef AS planner
 COPY . .
-RUN cargo chef prepare --bin rapla-proxy
+RUN cargo chef prepare
 
 
 FROM chef AS builder
 COPY --from=planner /build/recipe.json .
-RUN cargo chef cook --locked --release --bin rapla-proxy
+RUN cargo chef cook --locked --release
 COPY . .
-RUN cargo build --frozen --release --bin rapla-proxy
+RUN cargo build --frozen --release
 
 
 FROM gcr.io/distroless/static:nonroot@sha256:d71f4b239be2d412017b798a0a401c44c3049a3ca454838473a4c32ed076bfea

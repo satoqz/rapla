@@ -4,7 +4,7 @@ use chrono::{Duration, NaiveDate, NaiveTime};
 use once_cell::sync::Lazy;
 use scraper::{ElementRef, Html, Selector};
 
-use crate::{Calendar, Event};
+use crate::structs::{Calendar, Event};
 
 macro_rules! selector {
     ($query:expr) => {{
