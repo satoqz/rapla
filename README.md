@@ -29,5 +29,17 @@ A [Dockerfile](./Dockerfile) is included for easy deployment.
 
 ## Configuration
 
-You can set the `RAPLA_ICAL_PROXY_ADDR` environment variable to configure the socket address that the service binds to.
-The default is `127.0.0.1:8080`.
+```
+$ rapla-ical-proxy --help
+
+Usage: rapla-ical-proxy [-h] [-a SOCKET_ADDRESS] [-c] [-t SECONDS]
+
+Options:
+    -h, --help          Print the help output of rapla-ical-proxy
+    -a, --address SOCKET_ADDRESS
+                        Socket address (IP and port) to listen on [Default:
+                        127.0.0.1:8080]
+    -c, --enable-cache  Enable caching of parsed calendars [Default: false]
+    -t, --cache-ttl SECONDS
+                        Time-to-live for cached calendars [Default: 3600]
+```

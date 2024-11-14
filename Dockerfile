@@ -22,4 +22,4 @@ USER 65532:65532
 ENV RAPLA_ICAL_PROXY_ADDR=0.0.0.0:8080
 EXPOSE 8080
 
-CMD ["rapla-ical-proxy"]
+CMD ["rapla-ical-proxy", "--address=0.0.0.0:8080", "--enable-cache"]
