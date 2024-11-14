@@ -2,7 +2,6 @@
 
 - [Introduction](#introduction)
 - [Usage as Calendar Synchronizer](#usage-as-calendar-synchronizer)
-- [Usage as JSON API](#usage-as-json-api)
 - [Self-Hosting](#self-hosting)
 - [Configuration](#configuration)
 
@@ -23,21 +22,6 @@ To get started synchronizing your schedule to a calendar provider of your choice
 2. Replace the `dhbw.de` part of the URL with `satoqz.net`, such that it becomes `rapla.satoqz.net`.
 
 3. Paste the resulting URL into the "New calendar subscription" field of your calendar provider. The name of this feature varies based on your provider.
-
-## Usage as JSON API
-
-If you would like to receive the list of events as JSON rather than in the iCalendar format, you can add the `&json=true` query parameter to the Rapla URL.
-The resulting JSON response contains an array `"events"`, where each event is formatted as follows:
-
-| Field         | Format                            | Optional |
-| ------------- | --------------------------------- | -------- |
-| `date`        | `YYYY-MM-DD`                      | No       |
-| `start`       | `HH:MM`                           | No       |
-| `end`         | `HH:MM`                           | No       |
-| `title`       | String                            | No       |
-| `location`    | String                            | Yes      |
-| `organizer`   | String, comma-separated names     | Yes      |
-| `description` | String, comma-separated resources | Yes      |
 
 ## Self-Hosting
 

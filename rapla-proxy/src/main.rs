@@ -5,7 +5,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Redirect, Response},
     routing::get,
-    Json, Router,
+    Router,
 };
 use chrono::{Datelike, Duration, Utc};
 use serde::Deserialize;
@@ -43,18 +43,14 @@ async fn main() -> io::Result<()> {
 
 #[derive(Deserialize)]
 struct CalendarQuery {
-    // Forwarded components
     key: String,
     salt: String,
-    // Custom components
-    #[serde(default)]
-    json: bool,
 }
 
 async fn handle_calendar(
     State(cache): State<Cache>,
     Path(calendar_path): Path<String>,
-    Query(CalendarQuery { key, salt, json }): Query<CalendarQuery>,
+    Query(CalendarQuery { key, salt }): Query<CalendarQuery>,
 ) -> Response {
     let Some(calendar) = fetch_calendar_with_cache(calendar_path, key, salt, cache).await else {
         return (
@@ -64,15 +60,11 @@ async fn handle_calendar(
             .into_response();
     };
 
-    if json {
-        return Json(calendar.as_ref()).into_response();
-    }
-
-    return (
+    (
         [("content-type", "text/calendar")],
         calendar.to_ics().to_string(),
     )
-        .into_response();
+        .into_response()
 }
 
 async fn fetch_calendar_with_cache(
