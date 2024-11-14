@@ -55,6 +55,6 @@ where
             return None;
         }
 
-        return self.inner.read().await.get(&key).map(Arc::clone);
+        return self.inner.read().await.get(key).map(Arc::clone);
     }
 }
