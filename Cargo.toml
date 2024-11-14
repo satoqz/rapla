@@ -1,5 +1,5 @@
 [package]
-name = "rapla-proxy"
+name = "rapla-ical-proxy"
 version = "0.1.0"
 edition = "2021"
 

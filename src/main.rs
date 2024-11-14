@@ -23,13 +23,13 @@ const UPSTREAM: &str = "https://rapla.dhbw.de";
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    const RAPLA_PROXY_ADDR: &str = "RAPLA_PROXY_ADDR";
+    const RAPLA_ICAL_PROXY_ADDR: &str = "RAPLA_ICAL_PROXY_ADDR";
 
-    let Ok(addr) = env::var(RAPLA_PROXY_ADDR).map_or_else(
+    let Ok(addr) = env::var(RAPLA_ICAL_PROXY_ADDR).map_or_else(
         |_| Ok(SocketAddr::from(([127, 0, 0, 1], 8080))),
         |value| value.parse(),
     ) else {
-        eprintln!("Failed to parse `{RAPLA_PROXY_ADDR}` environment variable");
+        eprintln!("Failed to parse `{RAPLA_ICAL_PROXY_ADDR}` environment variable");
         process::exit(1);
     };
 
