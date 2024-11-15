@@ -42,7 +42,7 @@ impl Display for Error {
         match self {
             Error::UpstreamConnection(err) => write!(
                 f,
-                "Could not connect to upstream at {}\n",
+                "Could not connect to upstream at {}",
                 err.url()
                     .map(ToString::to_string)
                     .unwrap_or_else(|| String::from("<No URL found?>"))
@@ -111,9 +111,7 @@ async fn fetch_calendar(
     let url = generate_upstream_url(&calendar_path, &key, &salt);
     eprintln!("{url}");
 
-    let response = reqwest::get(url)
-        .await
-        .map_err(|err| Error::UpstreamConnection(err))?;
+    let response = reqwest::get(url).await.map_err(Error::UpstreamConnection)?;
 
     let response_url = response.url().clone();
     let response_status = response.status();
