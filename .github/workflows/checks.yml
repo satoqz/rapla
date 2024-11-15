@@ -1,4 +1,4 @@
-name: CI Checks
+name: checks
 
 on:
   push:
@@ -14,13 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: rustup toolchain install stable
       - run: cargo fmt -- --check
 
   clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: rustup toolchain install stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy -- -D warnings
