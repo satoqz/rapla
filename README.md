@@ -32,14 +32,16 @@ A [Dockerfile](./Dockerfile) is included for easy deployment.
 ```
 $ rapla-ical-proxy --help
 
-Usage: rapla-ical-proxy [-h] [-a SOCKET_ADDRESS] [-c] [-t SECONDS]
+Usage: rapla-ical-proxy [-h] [-a SOCKET_ADDRESS] [-c] [-t SECONDS] [-s MEGABYTES]
 
 Options:
     -h, --help          Print the help output of rapla-ical-proxy
     -a, --address SOCKET_ADDRESS
                         Socket address (IP and port) to listen on [Default:
                         127.0.0.1:8080]
-    -c, --enable-cache  Enable caching of parsed calendars [Default: false]
+    -c, --cache-enable  Enable caching of parsed calendars [Default: false]
     -t, --cache-ttl SECONDS
                         Time-to-live for cached calendars [Default: 3600]
+    -s, --cache-max-size MEGABYTES
+                        Maximum cache size in Megabytes [Default: 50]
 ```

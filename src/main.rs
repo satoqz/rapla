@@ -18,16 +18,18 @@ async fn main() -> io::Result<()> {
 
     let router = Router::new().nest(
         "/rapla",
-        crate::proxy::router(args.enable_cache.then_some(crate::cache::Config {
+        crate::proxy::router(args.cache_enable.then_some(crate::cache::Config {
             ttl: args.cache_ttl,
+            max_size: args.cache_max_size,
         })),
     );
 
     let listener = TcpListener::bind(args.address).await?;
 
     eprintln!("Listening on address:    {}", args.address);
-    eprintln!("Caching enabled:         {}", args.enable_cache);
+    eprintln!("Caching enabled:         {}", args.cache_enable);
     eprintln!("Cache time to live:      {}s", args.cache_ttl.as_secs());
+    eprintln!("Cache max size:          {}mb", args.cache_max_size);
 
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())

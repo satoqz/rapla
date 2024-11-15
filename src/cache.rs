@@ -63,6 +63,7 @@ impl Weighter<String, CachedResponse> for CachedResponseWeighter {
 
 pub struct Config {
     pub ttl: Duration,
+    pub max_size: u64,
 }
 
 struct MiddlewareState {
@@ -72,10 +73,9 @@ struct MiddlewareState {
 
 pub fn apply_middleware(router: Router, config: Config) -> Router {
     // Our ICS responses are in the 100 Kilobyte grade of size.
-    // We set the total cache capacity to 50 Megabytes, this should be too little to matter in terms of
-    // resource usage and enough to hold a couple hundred calendars.
-    // If ever desired, we can make the cache size configurable.
-    let cache = Cache::with_weighter(100, 1024 * 50, CachedResponseWeighter);
+    // By default (see CLI args) the total cache capacity is set to 50 Megabytes,
+    // this should be too little to matter in terms of resource usage and enough to hold a couple hundred calendars.
+    let cache = Cache::with_weighter(100, 1024 * config.max_size, CachedResponseWeighter);
     router.route_layer(middleware::from_fn_with_state(
         Arc::new(MiddlewareState {
             cache,

@@ -7,8 +7,9 @@ use getopts::Options;
 
 pub struct Args {
     pub address: SocketAddr,
-    pub enable_cache: bool,
+    pub cache_enable: bool,
     pub cache_ttl: Duration,
+    pub cache_max_size: u64,
 }
 
 fn opts() -> Options {
@@ -26,7 +27,7 @@ fn opts() -> Options {
     );
     opts.optflag(
         "c",
-        "enable-cache",
+        "cache-enable",
         "Enable caching of parsed calendars [Default: false]",
     );
     opts.optopt(
@@ -34,6 +35,12 @@ fn opts() -> Options {
         "cache-ttl",
         "Time-to-live for cached calendars [Default: 3600]",
         "SECONDS",
+    );
+    opts.optopt(
+        "s",
+        "cache-max-size",
+        "Maximum cache size in Megabytes [Default: 50]",
+        "MEGABYTES",
     );
     opts
 }
@@ -63,7 +70,7 @@ pub fn parse(args: Vec<String>) -> Args {
         }
     };
 
-    let enable_cache = matches.opt_present("enable-cache");
+    let cache_enable = matches.opt_present("cache-enable");
 
     let cache_ttl = match matches.opt_get_default("cache-ttl", 3600) {
         Ok(secs) => Duration::from_secs(secs),
@@ -73,9 +80,18 @@ pub fn parse(args: Vec<String>) -> Args {
         }
     };
 
+    let cache_max_size = match matches.opt_get_default("cache-max-size", 50) {
+        Ok(size) => size,
+        Err(err) => {
+            eprintln!("Provided value for option 'cache-max-size' is invalid: {err}");
+            process::exit(1);
+        }
+    };
+
     Args {
         address,
-        enable_cache,
+        cache_enable,
         cache_ttl,
+        cache_max_size,
     }
 }
