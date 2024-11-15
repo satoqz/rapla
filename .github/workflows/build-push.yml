@@ -49,6 +49,8 @@ jobs:
           path: target/${{ matrix.target.arch }}-unknown-linux-musl/release/rapla-ical-proxy
 
   push:
+    needs: build
+
     runs-on: ubuntu-latest
 
     permissions:
