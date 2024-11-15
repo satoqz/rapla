@@ -33,6 +33,8 @@ jobs:
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          key: ${{ matrix.target.arch }}
 
       - name: Build
         run: |
