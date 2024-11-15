@@ -1,6 +1,9 @@
 app = "rapla-ical-proxy"
 primary_region = "arn"
 
+[build]
+image = "ghcr.io/satoqz/rapla-ical-proxy"
+
 [http_service]
 processes = ["app"]
 internal_port = 8080
