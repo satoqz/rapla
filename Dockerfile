@@ -19,7 +19,6 @@ RUN cargo build --frozen --release
 FROM gcr.io/distroless/static:nonroot@sha256:d71f4b239be2d412017b798a0a401c44c3049a3ca454838473a4c32ed076bfea
 COPY --from=builder /build/target/release/rapla-ical-proxy /usr/local/bin/rapla-ical-proxy
 USER 65532:65532
-ENV RAPLA_ICAL_PROXY_ADDR=0.0.0.0:8080
 EXPOSE 8080
 
 CMD ["rapla-ical-proxy", "--address=0.0.0.0:8080", "--enable-cache"]
