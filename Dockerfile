@@ -25,5 +25,6 @@ CMD ["rapla-ical-proxy", "--address=0.0.0.0:8080", "--cache-enable"]
 FROM runtime AS external-build
 COPY rapla-ical-proxy /usr/local/bin/rapla-ical-proxy
 
+
 FROM runtime AS native-build
 COPY --from=builder /build/target/release/rapla-ical-proxy /usr/local/bin/rapla-ical-proxy

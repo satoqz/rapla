@@ -11,12 +11,10 @@ jobs:
     strategy:
       matrix:
         target:
-          - rust-target: x86_64-unknown-linux-musl
-            linker: x86_64-linux-gnu-gcc
-            apt-packages: build-essential musl-dev
-          - rust-target: aarch64-unknown-linux-musl
-            linker: aarch64-linux-musl-gcc
-            apt-packages: build-essential musl-dev
+          - arch: x86_64
+            extra-packages: ""
+          - arch: aarch64
+            extra-packages: gcc-aarch64-linux-gnu
 
     runs-on: ubuntu-latest
 
@@ -28,16 +26,19 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Add Rust toolchain
-        run: rustup target add ${{ matrix.target.rust-target }}
+        run: rustup target add ${{ matrix.target.arch }}-unknown-linux-musl
 
       - name: Install OS dependencies
-        run: sudo apt-get install -y ${{ matrix.target.apt-packages }}
+        run: sudo apt-get install -y build-essential ${{ matrix.target.extra-packages }}
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
 
       - name: Build
-        run: cargo build --locked --release --target ${{ matrix.target.rust-target }} --config target.${{ matrix.target.rust-target }}.linker=\"${{ matrix.target.linker }}\"
+        run: |
+          cargo build --locked --release \
+            --target ${{ matrix.target.target }}-unknown-linux-musl \
+            --config target.${{ matrix.target.target }}-unknown-linux-musl.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
 
   push:
     runs-on: ubuntu-latest
