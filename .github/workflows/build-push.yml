@@ -40,6 +40,12 @@ jobs:
             --target ${{ matrix.target.arch }}-unknown-linux-musl \
             --config target.${{ matrix.target.arch }}-unknown-linux-musl.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
 
+      - name: Upload binary
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: rapla-ical-proxy-${{ matrix.target.arch }}-unknown-linux-musl
+          path: target/${{ matrix.target.arch }}-unknown-linux-musl/release/rapla-ical-proxy
+
   push:
     runs-on: ubuntu-latest
 
