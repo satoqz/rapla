@@ -16,9 +16,18 @@ COPY . .
 RUN cargo build --frozen --release
 
 
-FROM gcr.io/distroless/static:nonroot@sha256:d71f4b239be2d412017b798a0a401c44c3049a3ca454838473a4c32ed076bfea
-COPY --from=builder /build/target/release/rapla-ical-proxy /usr/local/bin/rapla-ical-proxy
+FROM gcr.io/distroless/static:nonroot@sha256:d71f4b239be2d412017b798a0a401c44c3049a3ca454838473a4c32ed076bfea AS runtime
 USER 65532:65532
 EXPOSE 8080
-
 CMD ["rapla-ical-proxy", "--address=0.0.0.0:8080", "--cache-enable"]
+
+
+# used for CI builds that cross-compile outside of the container build.
+# assumes a directory layout of bin/rapla-ical-proxy-{arm64,amd64,...}
+ARG TARGETARCH
+FROM runtime AS external-build
+COPY rapla-ical-proxy-${TARGETARCH} /usr/local/bin/rapla-ical-proxy
+
+
+FROM runtime AS native-build
+COPY --from=builder /build/target/release/rapla-ical-proxy /usr/local/bin/rapla-ical-proxy
