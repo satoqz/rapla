@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  build-rust:
     strategy:
       matrix:
         target:
@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      BIN: rapla-ical-proxy-${{ matrix.target.arch }}-unknown-linux-musl
+      RUST_TARGET: ${{ matrix.target.arch }}-unknown-linux-musl
       CARGO_TERM_COLOR: always
 
     steps:
@@ -26,7 +28,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Add Rust toolchain
-        run: rustup target add ${{ matrix.target.arch }}-unknown-linux-musl
+        run: rustup target add ${{ env.RUST_TARGET }}
 
       - name: Install OS dependencies
         run: sudo apt-get install -y build-essential ${{ matrix.target.extra-packages }}
@@ -39,17 +41,20 @@ jobs:
       - name: Build
         run: |
           cargo build --locked --release \
-            --target ${{ matrix.target.arch }}-unknown-linux-musl \
-            --config target.${{ matrix.target.arch }}-unknown-linux-musl.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
+            --target ${{ env.RUST_TARGET }} \
+            --config target.${{ env.RUST_TARGET }}.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
+
+      - name: Rename binary
+        run: mv target/${{ env.RUST_TARGET }}/release/rapla-ical-proxy ${{ env.BIN }}
 
       - name: Upload binary
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: rapla-ical-proxy-${{ matrix.target.arch }}-unknown-linux-musl
-          path: target/${{ matrix.target.arch }}-unknown-linux-musl/release/rapla-ical-proxy
+          name: ${{ env.BIN }}
+          path: ${{ env.BIN }}
 
-  push:
-    needs: build
+  build-push-container:
+    needs: build-rust
 
     runs-on: ubuntu-latest
 
