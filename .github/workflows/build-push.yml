@@ -2,7 +2,7 @@ name: build-push
 
 on:
   push:
-    branches: [fast-multi-arch]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -58,12 +58,12 @@ jobs:
   build-push-container:
     needs: build-rust
 
-    runs-on: ubuntu-latest
-
     permissions:
       contents: read
       packages: write
       id-token: write
+
+    runs-on: ubuntu-latest
 
     env:
       REGISTRY: ghcr.io
