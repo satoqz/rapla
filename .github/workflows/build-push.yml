@@ -37,8 +37,8 @@ jobs:
       - name: Build
         run: |
           cargo build --locked --release \
-            --target ${{ matrix.target.target }}-unknown-linux-musl \
-            --config target.${{ matrix.target.target }}-unknown-linux-musl.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
+            --target ${{ matrix.target.arch }}-unknown-linux-musl \
+            --config target.${{ matrix.target.arch }}-unknown-linux-musl.linker=\"${{ matrix.target.arch }}-linux-gnu-gcc\"
 
   push:
     runs-on: ubuntu-latest
