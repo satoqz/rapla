@@ -1,60 +1,110 @@
-use std::collections::HashMap;
-use std::hash::Hash;
+use std::mem;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
-use tokio::sync::RwLock;
-use tokio::task;
-use tokio::time::{sleep, Duration};
+use axum::body::{Body, Bytes};
+use axum::extract::{Request, State};
+use axum::http::response::Parts;
+use axum::http::Uri;
+use axum::middleware::{self, Next};
+use axum::response::{IntoResponse, Response};
+use axum::Router;
+use quick_cache::sync::Cache;
+use quick_cache::Weighter;
+
+#[derive(Clone)]
+struct CachedResponse {
+    parts: Parts,
+    body: Bytes,
+    timestamp: Instant,
+}
+
+async fn decompose_response(response: Response) -> CachedResponse {
+    let (parts, body) = response.into_parts();
+    let bytes = axum::body::to_bytes(body, usize::MAX)
+        .await
+        .expect("response size is bigger than max usize");
+
+    CachedResponse {
+        parts,
+        body: bytes,
+        timestamp: Instant::now(),
+    }
+}
+
+impl IntoResponse for CachedResponse {
+    fn into_response(self) -> Response {
+        let mut response = Response::from_parts(self.parts, Body::from(self.body));
+
+        let age = self.timestamp.elapsed().as_secs().to_string();
+        let headers = response.headers_mut();
+        headers.insert(
+            "x-cache-age",
+            age.parse().expect("header value did not parse"),
+        );
+
+        response
+    }
+}
+
+#[derive(Clone)]
+struct CachedResponseWeighter;
+
+impl Weighter<String, CachedResponse> for CachedResponseWeighter {
+    fn weight(&self, key: &String, val: &CachedResponse) -> u64 {
+        // Rough estimate of response size in Kilobytes. Ensure weight is at least 1.
+        ((mem::size_of::<CachedResponse>() as u64
+            + key.bytes().len() as u64
+            + val.body.len() as u64)
+            / 1024)
+            .max(1)
+    }
+}
 
 pub struct Config {
-    pub enabled: bool,
     pub ttl: Duration,
 }
 
-pub struct Cache<K, V> {
-    enabled: bool,
-    inner: RwLock<HashMap<K, Arc<V>>>,
+struct MiddlewareState {
+    cache: Cache<String, CachedResponse, CachedResponseWeighter>,
     ttl: Duration,
 }
 
-impl<K, V> Cache<K, V>
-where
-    K: Clone + Eq + Hash + Send + Sync + 'static,
-    V: Send + Sync + 'static,
-{
-    pub fn new(config: Config) -> Arc<Self> {
-        Arc::new(Self {
-            enabled: config.enabled,
+pub fn apply_middleware(router: Router, config: Config) -> Router {
+    // Our ICS responses are in the 100 Kilobyte grade of size.
+    // We set the total cache capacity to 50 Megabytes, this should be too little to matter in terms of
+    // resource usage and enough to hold a couple hundred calendars.
+    // If ever desired, we can make the cache size configurable.
+    let cache = Cache::with_weighter(100, 1024 * 50, CachedResponseWeighter);
+    router.route_layer(middleware::from_fn_with_state(
+        Arc::new(MiddlewareState {
+            cache,
             ttl: config.ttl,
-            inner: Default::default(),
-        })
+        }),
+        cache_middleware,
+    ))
+}
+
+async fn cache_middleware(
+    State(state): State<Arc<MiddlewareState>>,
+    uri: Uri,
+    request: Request,
+    next: Next,
+) -> Response {
+    let key = uri.to_string();
+    let now = Instant::now();
+
+    match state.cache.get(&key) {
+        Some(cached) if (now - cached.timestamp) < state.ttl => return cached.into_response(),
+        _ => {}
     }
 
-    pub async fn insert(self: Arc<Self>, key: K, value: V) -> Arc<V> {
-        let arcd = Arc::new(value);
-        if !self.enabled {
-            return arcd;
-        }
+    let response = next.run(request).await;
+    let decomposed = decompose_response(response).await;
 
-        self.inner
-            .write()
-            .await
-            .insert(key.clone(), Arc::clone(&arcd));
-
-        let self_clone = Arc::clone(&self);
-        task::spawn(async move {
-            sleep(self_clone.ttl).await;
-            self_clone.inner.write().await.remove(&key);
-        });
-
-        arcd
-    }
-
-    pub async fn get(&self, key: &K) -> Option<Arc<V>> {
-        if !self.enabled {
-            return None;
-        }
-
-        return self.inner.read().await.get(key).map(Arc::clone);
-    }
+    // We're fine caching responses no matter the status. If things recover to normal automatically, just wait out the TTL.
+    // If a fix needs to be pushed from our side, we're redeploying and thereby clearing the cache anyways.
+    // Caching errored responses saves additional calls to upstream and parsing CPU time for paths that are most likely permanent fails anyways.
+    state.cache.insert(key, decomposed.clone());
+    Response::from_parts(decomposed.parts, Body::from(decomposed.body))
 }

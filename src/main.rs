@@ -18,10 +18,9 @@ async fn main() -> io::Result<()> {
 
     let router = Router::new().nest(
         "/rapla",
-        crate::proxy::router(crate::cache::Config {
-            enabled: args.enable_cache,
+        crate::proxy::router(args.enable_cache.then_some(crate::cache::Config {
             ttl: args.cache_ttl,
-        }),
+        })),
     );
 
     let listener = TcpListener::bind(args.address).await?;

@@ -1,9 +1,9 @@
 use std::env;
 use std::net::SocketAddr;
 use std::process;
+use std::time::Duration;
 
 use getopts::Options;
-use tokio::time::Duration;
 
 pub struct Args {
     pub address: SocketAddr,

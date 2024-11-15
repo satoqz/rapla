@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
@@ -13,13 +11,13 @@ use crate::structs::Calendar;
 
 const UPSTREAM: &str = "https://rapla.dhbw.de";
 
-type Cache = Arc<crate::cache::Cache<(String, String), Calendar>>;
-
-pub fn router(cache_config: crate::cache::Config) -> Router {
-    let cache = crate::cache::Cache::new(cache_config);
-    Router::new()
-        .route("/:calendar_path", get(handle_calendar))
-        .with_state(cache)
+pub fn router(cache_config: Option<crate::cache::Config>) -> Router {
+    let router = Router::new().route("/:calendar_path", get(handle_calendar));
+    if let Some(cache_config) = cache_config {
+        crate::cache::apply_middleware(router, cache_config)
+    } else {
+        router
+    }
 }
 
 #[derive(Deserialize)]
@@ -29,11 +27,10 @@ struct CalendarQuery {
 }
 
 async fn handle_calendar(
-    State(cache): State<Cache>,
     Path(calendar_path): Path<String>,
     Query(CalendarQuery { key, salt }): Query<CalendarQuery>,
 ) -> Response {
-    let calendar = fetch_calendar(calendar_path, key, salt, cache).await;
+    let calendar = fetch_calendar(calendar_path, key, salt).await;
 
     match calendar {
         Some(calendar) => (
@@ -49,24 +46,11 @@ async fn handle_calendar(
     }
 }
 
-async fn fetch_calendar(
-    calendar_path: String,
-    key: String,
-    salt: String,
-    cache: Cache,
-) -> Option<Arc<Calendar>> {
-    let cache_key = (key, salt);
-    if let Some(cached) = cache.get(&cache_key).await {
-        return Some(cached);
-    }
-
-    let url = generate_upstream_url(&calendar_path, &cache_key.0, &cache_key.1);
+async fn fetch_calendar(calendar_path: String, key: String, salt: String) -> Option<Calendar> {
+    let url = generate_upstream_url(&calendar_path, &key, &salt);
     eprintln!("{url}");
-
     let html = reqwest::get(url).await.ok()?.text().await.ok()?;
-    let calendar = parse_calendar(&html)?;
-
-    Some(cache.insert(cache_key, calendar).await)
+    parse_calendar(&html)
 }
 
 fn generate_upstream_url(calendar_path: &str, key: &str, salt: &str) -> String {
