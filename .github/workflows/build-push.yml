@@ -124,3 +124,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
         id: build-push
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+        if: github.event_name != 'pull_request'
+
+      - name: Sign container image
+        env:
+          TAGS: ${{ steps.tags.outputs.tags }}
+          DIGEST: ${{ steps.build-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        if: github.event_name != 'pull_request'
