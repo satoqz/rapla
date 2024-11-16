@@ -17,4 +17,5 @@ tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros", "signal"]
 
 [profile.release]
 opt-level = 3
+strip = "debuginfo"
 lto = true
