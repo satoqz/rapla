@@ -133,5 +133,5 @@ jobs:
         env:
           TAGS: ${{ steps.tags.outputs.tags }}
           DIGEST: ${{ steps.build-push.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: echo "${TAGS}" | tr ',' '\n' | xargs -I {} cosign sign --yes {}@${DIGEST}
         if: github.event_name != 'pull_request'
