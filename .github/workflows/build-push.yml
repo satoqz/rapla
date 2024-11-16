@@ -13,10 +13,9 @@ jobs:
         target:
           - arch: x86_64
             container-arch: amd64
-            extra-packages: ""
           - arch: aarch64
             container-arch: arm64
-            extra-packages: gcc-aarch64-linux-gnu
+            packages: gcc-aarch64-linux-gnu
 
     runs-on: ubuntu-latest
 
@@ -33,7 +32,8 @@ jobs:
         run: rustup target add ${{ env.RUST_TARGET }}
 
       - name: Install OS dependencies
-        run: sudo apt-get install -y build-essential ${{ matrix.target.extra-packages }}
+        run: sudo apt-get install -y --no-install-recommends ${{ matrix.target.packages }}
+        if: matrix.target.packages
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
